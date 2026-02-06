@@ -1,0 +1,80 @@
+# Full NASA HUNCH + DLSM Workspace
+
+This repository contains the full workspace used in the NASA HUNCH inventory UI work along with the DLSM reference systems and mock services. It is organized as a multi-folder repo with separate frontend apps and a mock server.
+
+## Contents
+
+- **nasa-hunch/** – Main React + TypeScript + Vite UI (Ground/Crew/Warehouse views).
+- **dlsm-temp/** – DLSM client + mock server and schemas (includes dev-server and edge-server services).
+- **DLSM-FINAL-SYSTEM/** – Reference UI used for visual and UX alignment.
+- **start-frontend.ps1** – Starts the main UI from `nasa-hunch`.
+- **start-server.ps1** – Starts the mock server from `dlsm-temp/dlsm-inv-sys-client-main/dev-server`.
+- **PROJECT_OVERVIEW.md** – High-level project notes.
+
+## Requirements
+
+- **Node.js**: 22.12+ (or 20.19+). Node 22.12 was used in development.
+- **Windows PowerShell** (for the provided `.ps1` scripts).
+
+## Quick Start
+
+### 1) Start the frontend UI
+
+Run from the repo root:
+
+```powershell
+./start-frontend.ps1
+```
+
+This runs the Vite dev server for the main UI in `nasa-hunch`.
+
+### 2) Start the mock server
+
+Run from the repo root:
+
+```powershell
+./start-server.ps1
+```
+
+This starts the mock API server used by the UI.
+
+## Manual Start (Optional)
+
+### Frontend
+
+```powershell
+cd nasa-hunch
+npm install
+npm run dev
+```
+
+### Mock Server
+
+```powershell
+cd dlsm-temp/dlsm-inv-sys-client-main/dev-server
+npm install
+node server.mjs
+```
+
+## Project Highlights
+
+- **Nord-themed UI** across Ground/Crew/Warehouse views.
+- **Consistent top bar time** and sidebar navigation with icon buttons.
+- **Warehouse flow screens** (Receive/Tag/Pack/Stow/Move) updated for spacing, layout, and responsiveness.
+- **Tag seed data** managed in the mock server to limit visible badges in the UI.
+
+## Folder Notes
+
+- `nasa-hunch/src/views/` contains `GroundView`, `CrewView`, and `WarehouseView`.
+- `nasa-hunch/src/screens/` contains warehouse operational screens.
+- `dlsm-temp/dlsm-inv-sys-client-main/dev-server/server.mjs` hosts the mock API.
+- `DLSM-FINAL-SYSTEM/frontend-dslm-main` is reference-only.
+
+## Troubleshooting
+
+- If the UI shows a blank page, make sure Node is 22.12+ and dependencies are installed.
+- If ports are in use, stop the old process or update the port in the corresponding Vite or server config.
+
+## License
+
+See individual subfolders for their respective licenses.
