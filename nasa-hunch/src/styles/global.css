@@ -1,0 +1,47 @@
+/* Reset body and root */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Sensible box model */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Let scrollable flex children size correctly */
+.app-layout,
+.app-main {
+  min-height: 100vh;
+}
+
+.ground-container,
+main {
+  min-height: 0;
+}
+
+/* Remove nested full-viewport heights from sections */
+.receive-section,
+.tag-section,
+.pack-section,
+.stow-section,
+.move-section {
+  min-height: 0 !important;
+}
+
+/* Hide sidebar on desktop layout (already in app layout) */
+.app-sidebar {
+  display: none !important;
+}
+
+.app-main,
+.app-content,
+main {
+  margin-left: 0 !important;
+  width: 100% !important;
+}
