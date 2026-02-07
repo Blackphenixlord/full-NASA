@@ -70,6 +70,17 @@ node server.mjs
 - `dlsm-temp/dlsm-inv-sys-client-main/dev-server/server.mjs` hosts the mock API.
 - `DLSM-FINAL-SYSTEM/frontend-dslm-main` is reference-only.
 
+## Ports
+
+- Frontend (Vite): http://localhost:5173
+- Mock server: http://localhost:8080
+
+## Subproject Docs
+
+- NASA HUNCH UI docs: [nasa-hunch/README.md](nasa-hunch/README.md)
+- DLSM client + services: [dlsm-temp/README.md](dlsm-temp/README.md)
+- Reference UI: [DLSM-FINAL-SYSTEM/frontend-dslm-main/README.md](DLSM-FINAL-SYSTEM/frontend-dslm-main/README.md)
+
 ## Troubleshooting
 
 - If the UI shows a blank page, make sure Node is 22.12+ and dependencies are installed.
