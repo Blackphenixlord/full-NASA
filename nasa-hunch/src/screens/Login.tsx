@@ -43,22 +43,14 @@ export default function Login() {
     [syncWhen]
   );
 
-  // Badge IDs for testing
+  // Badge IDs
   const BADGES: Record<string, BadgeConfig> = useMemo(
     () => ({
-      // crew badges
-      "0004726482": { actor: "max", uiMode: "crew" },
-      "0004704735": { actor: "josh", uiMode: "crew" },
-      "0004661610": { actor: "ben", uiMode: "crew" },
-      
+      // crew badge
+      "0013763240": { actor: "crew", uiMode: "crew" },
+
       // ground badge
-      "0004721084": { actor: "ground", uiMode: "ground" },
-      
-      // test ground badges
-      "0004720389": { actor: "max", uiMode: "crew" },
-      "0004527627": { actor: "josh", uiMode: "crew" },
-      "0004604320": { actor: "ben", uiMode: "crew" },
-      "0004761445": { actor: "ground", uiMode: "ground" },
+      "0013751699": { actor: "ground", uiMode: "ground" },
     }),
     []
   );
