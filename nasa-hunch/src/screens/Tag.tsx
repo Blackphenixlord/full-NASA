@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from "react";
+import { apiUrl } from "../lib/apiBase";
+import { useKeyboardWedgeScan } from "../lib/useKeyboardWedgeScan";
 
 interface TagItem {
   id: string;
@@ -13,11 +15,7 @@ interface RFIDCard {
 }
 
 export default function Tag() {
-  const [items, setItems] = useState<TagItem[]>([
-    { id: "1", sku: "MEAL-0001", name: "Meal • Pasta Primavera", status: "untagged" },
-    { id: "2", sku: "MEAL-0002", name: "Meal • Veggie Curry", status: "untagged" },
-    { id: "3", sku: "BLOB-0001", name: "Blob • Mode of (Day 1)", status: "untagged" },
-  ]);
+  const [items, setItems] = useState<TagItem[]>([]);
 
   const [uid, setUid] = useState("");
   const [selectedItem, setSelectedItem] = useState<TagItem | null>(null);
@@ -25,39 +23,67 @@ export default function Tag() {
   const [pairedCard, setPairedCard] = useState<RFIDCard | null>(null);
   const uidRef = useRef<HTMLInputElement>(null);
 
+  async function refreshItems() {
+    const res = await fetch(apiUrl("/tag/items"));
+    if (!res.ok) throw new Error("LOAD_FAILED");
+    const data = (await res.json()) as Array<{ id: string; code: string; name: string; status: string }>;
+    const mapped: TagItem[] = data.map((row) => ({
+      id: row.id,
+      sku: row.code,
+      name: row.name,
+      status: row.status === "needs-verify" ? "in-progress" : row.status === "tagged" ? "tagged" : "untagged",
+    }));
+    setItems(mapped);
+  }
+
   useEffect(() => {
     uidRef.current?.focus();
+    refreshItems().catch(() => null);
   }, []);
+
+  useKeyboardWedgeScan({
+    enabled: true,
+    onScan: (value) => handleScan(value),
+  });
 
   const handleScan = (scannedUid: string) => {
     const normalized = scannedUid.trim().toUpperCase();
+    if (!normalized) return;
     setUid(normalized);
     setPairedCard({ cardHex: normalized, lastScanned: new Date().toLocaleTimeString() });
     setStatus("paired");
-
-    // Simulate successful scan
-    setTimeout(() => {
-      setStatus("waiting");
-    }, 3000);
   };
 
-  const handlePair = () => {
+  const handlePair = async () => {
     if (!pairedCard || !selectedItem) {
       setStatus("error");
       return;
     }
 
     setStatus("pairing");
-    // Simulate pairing
-    setTimeout(() => {
-      setItems((prev) =>
-        prev.map((item) => (item.id === selectedItem.id ? { ...item, status: "tagged" } : item))
-      );
+    try {
+      const pairRes = await fetch(apiUrl("/tag/pair"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cardHex: pairedCard.cardHex, itemId: selectedItem.id }),
+      });
+      if (!pairRes.ok) throw new Error("PAIR_FAILED");
+
+      const verifyRes = await fetch(apiUrl("/tag/verify"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cardHex: pairedCard.cardHex }),
+      });
+      if (!verifyRes.ok) throw new Error("VERIFY_FAILED");
+
+      await refreshItems();
       setStatus("paired");
       setSelectedItem(null);
       setUid("");
       setPairedCard(null);
-    }, 500);
+    } catch {
+      setStatus("error");
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {

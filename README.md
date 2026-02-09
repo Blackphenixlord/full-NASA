@@ -8,7 +8,7 @@ This repository contains the full workspace used in the NASA HUNCH inventory UI 
 - **dlsm-temp/** – DLSM client + mock server and schemas (includes dev-server and edge-server services).
 - **DLSM-FINAL-SYSTEM/** – Reference UI used for visual and UX alignment.
 - **start-frontend.ps1** – Starts the main UI from `nasa-hunch`.
-- **start-server.ps1** – Starts the mock server from `dlsm-temp/dlsm-inv-sys-client-main/dev-server`.
+- **start-server.ps1** – Starts the edge-server API from `dlsm-temp/dlsm-inv-sys-client-main/services/edge-server` (NO_DB mode).
 - **PROJECT_OVERVIEW.md** – High-level project notes.
 
 ## Requirements
@@ -36,7 +36,7 @@ Run from the repo root:
 ./start-server.ps1
 ```
 
-This starts the mock API server used by the UI.
+This starts the API server used by the UI (memory mode).
 
 ## Manual Start (Optional)
 
@@ -51,9 +51,10 @@ npm run dev
 ### Mock Server
 
 ```powershell
-cd dlsm-temp/dlsm-inv-sys-client-main/dev-server
+cd dlsm-temp/dlsm-inv-sys-client-main/services/edge-server
 npm install
-node server.mjs
+$env:NO_DB = "1"
+node src/server.mjs
 ```
 
 ## Project Highlights
@@ -67,13 +68,13 @@ node server.mjs
 
 - `nasa-hunch/src/views/` contains `GroundView`, `CrewView`, and `WarehouseView`.
 - `nasa-hunch/src/screens/` contains warehouse operational screens.
-- `dlsm-temp/dlsm-inv-sys-client-main/dev-server/server.mjs` hosts the mock API.
+- `dlsm-temp/dlsm-inv-sys-client-main/services/edge-server/src/server.mjs` hosts the API.
 - `DLSM-FINAL-SYSTEM/frontend-dslm-main` is reference-only.
 
 ## Ports
 
 - Frontend (Vite): http://localhost:5173
-- Mock server: http://localhost:8080
+- API server: http://localhost:8080
 
 ## Subproject Docs
 
