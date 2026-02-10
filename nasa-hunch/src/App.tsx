@@ -13,7 +13,7 @@ function AnimatedRoutes() {
   const key = `${location.pathname}${location.search}`;
 
   return (
-    <div className="route-transition" key={key}>
+    <div className="route-transition stagger-children" key={key}>
       <Routes location={location}>
         <Route path="/" element={<CrewView />} />
         <Route path="/crew" element={<CrewView />} />
@@ -29,7 +29,7 @@ export default function App() {
       <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: "#1a1a1a" }}>
         {/* Main display area */}
         <main
-          className="app-main"
+          className="app-main animate-all"
           style={{
             flex: "1 1 auto",
             padding: "0",

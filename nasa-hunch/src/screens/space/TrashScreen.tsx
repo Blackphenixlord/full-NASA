@@ -231,6 +231,7 @@ export default function TrashScreen() {
   const [searchItems, setSearchItems] = useState<SearchItem[]>([]);
   const [searchDetails, setSearchDetails] = useState<Record<string, { trashType?: string }>>({});
   const fetchedDetailsRef = useRef<Set<string>>(new Set());
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   function reset() {
     setSelected(null);
@@ -364,17 +365,86 @@ export default function TrashScreen() {
 
       <Card title="Scan" accent={NORD.teal}>
         <div className="flex flex-col gap-4">
-          <input
-            value={scanValue}
-            onChange={(e) => setScanValue(e.target.value)}
-            placeholder="Scan RFID or enter unit ID"
-            className="w-full rounded-2xl px-4 py-4 text-lg outline-none"
-            style={{
-              background: NORD.panel2,
-              color: NORD.text,
-              border: "1px solid rgba(216,222,233,0.10)",
-            }}
-          />
+          <div className="relative">
+            <input
+              value={scanValue}
+              onChange={(e) => {
+                const next = e.target.value;
+                setScanValue(next);
+                setDropdownOpen(Boolean(next.trim()));
+              }}
+              onFocus={() => setDropdownOpen(Boolean(scanValue.trim()))}
+              onBlur={() => window.setTimeout(() => setDropdownOpen(false), 120)}
+              placeholder="Scan RFID or enter unit ID"
+              className="w-full rounded-2xl px-4 py-4 text-lg outline-none"
+              style={{
+                background: NORD.panel2,
+                color: NORD.text,
+                border: "1px solid rgba(216,222,233,0.10)",
+              }}
+            />
+            {dropdownOpen && filteredSearch.length ? (
+              <div
+                className="absolute left-0 right-0 mt-2 overflow-hidden rounded-2xl search-overlay"
+                style={{ zIndex: 1000 }}
+              >
+                <div
+                  className="grid grid-cols-[1.2fr_1fr_0.9fr_0.6fr] gap-2 px-4 py-2 text-xs search-overlay-header"
+                  style={{ color: NORD.subtle }}
+                >
+                  <div>Item</div>
+                  <div>RFID</div>
+                  <div>Trash</div>
+                  <div className="text-right">Pick</div>
+                </div>
+                {filteredSearch.map((item) => {
+                  const detail = searchDetails[item.id];
+                  const ttone = toneForTrashType(detail?.trashType ?? "");
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        setScanValue(item.code);
+                        scanItem(item.code);
+                        setDropdownOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-3 transition search-overlay-row"
+                    >
+                      <div className="grid grid-cols-[1.2fr_1fr_0.9fr_0.6fr] gap-2 items-center">
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold" style={{ color: NORD.text }}>
+                            {item.name}
+                          </div>
+                          <div className="text-xs" style={{ color: NORD.muted }}>
+                            {item.id}
+                          </div>
+                        </div>
+                        <div className="text-sm" style={{ color: NORD.subtle }}>
+                          {item.code}
+                        </div>
+                        <div>
+                          <Pill label={ttone.pill} tone={ttone.tone} />
+                        </div>
+                        <div className="text-right">
+                          <span
+                            className="inline-flex items-center rounded-xl px-3 py-2 text-xs font-semibold"
+                            style={{
+                              background: "rgba(129,161,193,0.16)",
+                              color: NORD.blue2,
+                              border: "1px solid rgba(129,161,193,0.26)",
+                            }}
+                          >
+                            Pick
+                          </span>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
           <Button onClick={scanItem} className="w-full text-lg py-4">
             Scan item
           </Button>
@@ -408,41 +478,7 @@ export default function TrashScreen() {
         </div>
       </Card>
 
-      {filteredSearch.length ? (
-        <div
-          className="rounded-2xl p-4"
-          style={{ background: NORD.panel, border: "1px solid rgba(216,222,233,0.10)" }}
-        >
-          <div className="text-sm" style={{ color: NORD.subtle }}>Search results</div>
-          <div className="mt-3 space-y-3">
-            {filteredSearch.map((item) => {
-              const detail = searchDetails[item.id];
-              const ttone = toneForTrashType(detail?.trashType ?? "");
-              return (
-                <div
-                  key={item.id}
-                  className="rounded-2xl px-4 py-3 flex items-start justify-between gap-3"
-                  style={{ background: NORD.panel2, border: "1px solid rgba(216,222,233,0.10)" }}
-                >
-                  <div className="min-w-0">
-                    <div className="text-base font-semibold" style={{ color: NORD.text }}>{item.name}</div>
-                    <div className="text-sm" style={{ color: NORD.muted }}>{item.code}</div>
-                    <div className="text-xs" style={{ color: NORD.subtle }}>
-                      {detail?.trashType ? `Trash: ${detail.trashType}` : "Trash —"}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Pill label={ttone.pill} tone={ttone.tone} />
-                    <Button onClick={() => { setScanValue(item.code); scanItem(item.code); }} className="px-3 py-2 text-sm">
-                      Pick
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      ) : null}
+      {null}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 min-h-0">
         <Card title="Go to bin" accent={NORD.blue}>

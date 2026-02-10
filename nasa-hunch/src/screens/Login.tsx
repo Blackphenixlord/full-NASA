@@ -184,10 +184,13 @@ export default function Login() {
 
   // (no focus — no visible input)
 
+  const isUnknownBadge = err.startsWith("Unknown badge:");
+  const showRegister = Boolean(err) && !isUnknownBadge;
+
   return (
     <div className="h-screen w-screen flex items-center justify-center p-6" style={{ background: NORD.bg }}>
       <div
-        className="w-full max-w-md rounded-3xl p-6 animate-fade-up"
+        className="w-full max-w-md rounded-3xl p-6 animate-fade-up hover-lift"
         style={{
           background: "rgba(59,66,82,0.92)",
           border: "1px solid rgba(216,222,233,0.10)",
@@ -199,7 +202,7 @@ export default function Login() {
 
         <div className="mt-5 space-y-4">
           <div
-            className="rounded-2xl px-4 py-3 text-sm"
+            className="rounded-2xl px-4 py-3 text-sm hover-lift"
             style={{
               background: "rgba(46,52,64,0.55)",
               border: "1px solid rgba(216,222,233,0.12)",
@@ -209,7 +212,7 @@ export default function Login() {
             Scan your RFID badge to continue.
           </div>
 
-          <div>
+          <div className="hover-lift">
             <div className="text-sm font-semibold" style={{ color: NORD.muted }}>
               Badge ID
             </div>
@@ -219,7 +222,7 @@ export default function Login() {
               onKeyDown={(e) => {
                 if (e.key === "Enter" && typed.trim()) applyBadge(typed);
               }}
-              className="mt-2 w-full rounded-2xl px-4 py-3 text-base outline-none"
+              className="mt-2 w-full rounded-2xl px-4 py-3 text-base outline-none hover-lift"
               style={{
                 background: "rgba(46,52,64,0.55)",
                 border: "1px solid rgba(216,222,233,0.12)",
@@ -235,35 +238,39 @@ export default function Login() {
               <div className="text-sm" style={{ color: NORD.red }}>
                 {err}
               </div>
-              <div className="text-xs" style={{ color: NORD.subtle }}>
-                If this badge is new, register it below.
-              </div>
-              <div className="flex flex-col gap-2">
-                <button
-                  type="button"
-                  onClick={() => registerBadge("crew")}
-                  className="w-full rounded-2xl px-6 py-3 text-base font-semibold transition hover:opacity-95 hover-lift"
-                  style={{
-                    background: "rgba(129,161,193,0.18)",
-                    border: "1px solid rgba(129,161,193,0.30)",
-                    color: NORD.text,
-                  }}
-                >
-                  Register as Crew
-                </button>
-                <button
-                  type="button"
-                  onClick={() => registerBadge("ground")}
-                  className="w-full rounded-2xl px-6 py-3 text-base font-semibold transition hover:opacity-95 hover-lift"
-                  style={{
-                    background: "rgba(129,161,193,0.18)",
-                    border: "1px solid rgba(129,161,193,0.30)",
-                    color: NORD.text,
-                  }}
-                >
-                  Register as Ground
-                </button>
-              </div>
+              {showRegister ? (
+                <>
+                  <div className="text-xs" style={{ color: NORD.subtle }}>
+                    If this badge is new, register it below.
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <button
+                      type="button"
+                      onClick={() => registerBadge("crew")}
+                      className="w-full rounded-2xl px-6 py-3 text-base font-semibold transition hover:opacity-95 hover-lift"
+                      style={{
+                        background: "rgba(129,161,193,0.18)",
+                        border: "1px solid rgba(129,161,193,0.30)",
+                        color: NORD.text,
+                      }}
+                    >
+                      Register as Crew
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => registerBadge("ground")}
+                      className="w-full rounded-2xl px-6 py-3 text-base font-semibold transition hover:opacity-95 hover-lift"
+                      style={{
+                        background: "rgba(129,161,193,0.18)",
+                        border: "1px solid rgba(129,161,193,0.30)",
+                        color: NORD.text,
+                      }}
+                    >
+                      Register as Ground
+                    </button>
+                  </div>
+                </>
+              ) : null}
             </div>
           ) : null}
         </div>

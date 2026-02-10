@@ -279,6 +279,8 @@ type DirectoryEntry = {
   tagId: string;
   location: string;
   kind: string;
+  qty?: number | null;
+  maxQty?: number | null;
 };
 
 type CrewScanResponse = {
@@ -286,7 +288,10 @@ type CrewScanResponse = {
   name: string;
   tagId: string;
   location?: string;
+  home?: string;
   kind?: string;
+  qty?: number | null;
+  maxQty?: number | null;
 };
 
 type SearchItem = {
@@ -300,11 +305,18 @@ export default function RemoveScreen() {
   const [searchItems, setSearchItems] = useState<SearchItem[]>([]);
   const [searchDetails, setSearchDetails] = useState<Record<string, { location?: string; kind?: string }>>({});
   const fetchedDetailsRef = useRef<Set<string>>(new Set());
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [locationPreview, setLocationPreview] = useState<string | null>(null);
   const [scanned, setScanned] = useState<DirectoryEntry | null>(null);
   const [confirmed, setConfirmed] = useState(false);
   const [removed, setRemoved] = useState(false);
   const [lastActionAt, setLastActionAt] = useState<number | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
+  const [removeAmount, setRemoveAmount] = useState(1);
+
+  const availableQty = typeof scanned?.qty === "number" ? scanned.qty : null;
+  const canRemove = availableQty == null ? true : availableQty > 0;
+  const maxRemove = availableQty == null ? 100 : Math.max(1, availableQty);
 
   function reset() {
     setScanValue("");
@@ -329,9 +341,12 @@ export default function RemoveScreen() {
         id: data.id,
         name: data.name,
         tagId: data.tagId ?? norm,
-        location: data.location ?? "",
+        location: data.location ?? data.home ?? "",
         kind: data.kind ?? "—",
+        qty: typeof data.qty === "number" ? data.qty : null,
+        maxQty: typeof data.maxQty === "number" ? data.maxQty : null,
       });
+      setLocationPreview(null);
       setConfirmed(false);
       setRemoved(false);
       setWarning(null);
@@ -339,6 +354,7 @@ export default function RemoveScreen() {
       setScanned(null);
       setConfirmed(false);
       setRemoved(false);
+      setLocationPreview(null);
       setWarning("Item not found. Try again.");
     }
   }, [scanValue]);
@@ -395,6 +411,15 @@ export default function RemoveScreen() {
     },
   });
 
+  useEffect(() => {
+    if (availableQty == null) return;
+    if (availableQty <= 0) {
+      setRemoveAmount(1);
+      return;
+    }
+    setRemoveAmount((prev) => Math.min(availableQty, Math.max(1, prev)));
+  }, [availableQty]);
+
   function confirmItem() {
     if (!scanned) return;
     setConfirmed(true);
@@ -403,14 +428,39 @@ export default function RemoveScreen() {
   async function markRemoved() {
     if (!scanned || !confirmed) return;
     try {
+      if (typeof scanned.qty === "number" && scanned.qty <= 0) {
+        setWarning("No quantity available.");
+        return;
+      }
+      const parsed = Number(removeAmount || 1);
+      const base = Number.isFinite(parsed) ? parsed : 1;
+      const cap = typeof scanned.qty === "number" ? scanned.qty : 100;
+      const qty = Math.min(cap, Math.max(1, base));
       const res = await fetch(apiUrl("/crew/remove"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ unitId: scanned.id }),
+        body: JSON.stringify({ unitId: scanned.id, qty }),
       });
-      if (!res.ok) throw new Error("REMOVE_FAILED");
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        if (err?.error === "INSUFFICIENT_QTY" && typeof err.available === "number") {
+          setWarning(`Only ${err.available} left.`);
+          setScanned((prev) => (prev ? { ...prev, qty: err.available } : prev));
+          return;
+        }
+        throw new Error("REMOVE_FAILED");
+      }
       setRemoved(true);
       setLastActionAt(Date.now());
+      setScanned((prev) => {
+        if (!prev || typeof prev.qty !== "number") return prev;
+        const nextQty = Math.max(0, prev.qty - qty);
+        return { ...prev, qty: nextQty };
+      });
+      if (typeof scanned.qty === "number" && scanned.qty - qty <= 0) {
+        setConfirmed(false);
+        setWarning("No more available.");
+      }
     } catch {
       setWarning("Remove failed. Try again.");
     }
@@ -432,17 +482,70 @@ export default function RemoveScreen() {
         {removed ? <Pill label="Removed" tone="good" /> : null}
       </div>
 
-      <Card title="Scan" right={warning ? <Pill label={warning} tone="bad" /> : null}>
-        <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-4">
-          <div className="space-y-3">
-            <BigInput
-              value={scanValue}
-              onChange={(value) => setScanValue(value)}
-              placeholder="Scan RFID tag…"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") submitScan();
-              }}
-            />
+      <div style={{ position: "relative", zIndex: 5 }}>
+        <Card title="Scan" right={warning ? <Pill label={warning} tone="bad" /> : null}>
+          <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-4">
+            <div className="space-y-3">
+            <div className="text-sm font-semibold" style={{ color: NORD.subtle }}>
+              RFID tag
+            </div>
+            <div className="relative">
+              <BigInput
+                value={scanValue}
+                onChange={(value) => setScanValue(value)}
+                placeholder="Scan RFID tag…"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") submitScan();
+                }}
+                onFocus={() => setDropdownOpen(true)}
+                onBlur={() => window.setTimeout(() => setDropdownOpen(false), 120)}
+              />
+              {dropdownOpen && filteredSearch.length ? (
+                <div className="absolute left-0 right-0 mt-2 overflow-hidden rounded-2xl search-overlay" style={{ zIndex: 1000 }}>
+                  <div
+                    className="grid grid-cols-[1.2fr_1fr_1.2fr] gap-2 px-4 py-2 text-xs search-overlay-header"
+                    style={{ color: NORD.subtle }}
+                  >
+                    <div>Item</div>
+                    <div>RFID</div>
+                    <div>Location</div>
+                  </div>
+                  {filteredSearch.map((item) => {
+                    const detail = searchDetails[item.id];
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => {
+                          setScanValue(item.code);
+                          setLocationPreview(detail?.location ?? null);
+                          submitScan(item.code);
+                          setDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-4 py-3 transition search-overlay-row"
+                      >
+                        <div className="grid grid-cols-[1.2fr_1fr_1.2fr] gap-2">
+                          <div className="min-w-0">
+                            <div className="text-sm font-semibold" style={{ color: NORD.text }}>
+                              {item.name}
+                            </div>
+                            <div className="text-xs" style={{ color: NORD.muted }}>
+                              {item.id}
+                            </div>
+                          </div>
+                          <div className="text-sm" style={{ color: NORD.subtle }}>
+                            {item.code}
+                          </div>
+                          <div className="text-sm" style={{ color: NORD.subtle }}>
+                            {detail?.location ? detail.location : "—"}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </div>
             <div className="flex flex-wrap gap-3">
               <Button onClick={submitScan}>Submit</Button>
               <Button variant="ghost" onClick={reset}>
@@ -456,55 +559,24 @@ export default function RemoveScreen() {
             ) : null}
           </div>
 
-          <div>
+          <div className="space-y-3">
             <div className="text-sm font-semibold" style={{ color: NORD.subtle }}>
               Location
             </div>
-            <div className="mt-3">
-              {location ? (
-                <LocationBlock code={location.code} english={location.english} />
-              ) : (
-                <LocationBlock code="—" english="" />
-              )}
-            </div>
+            {location ? (
+              <LocationBlock code={location.code} english={location.english} />
+            ) : locationPreview ? (
+              <LocationBlock code={locationPreview} english={""} />
+            ) : (
+              <LocationBlock code="—" english="" />
+            )}
           </div>
         </div>
       </Card>
+      </div>
 
-      {filteredSearch.length ? (
-        <div
-          className="rounded-2xl p-4"
-          style={{ background: NORD.panel, border: "1px solid rgba(216,222,233,0.10)" }}
-        >
-          <div className="text-sm" style={{ color: NORD.subtle }}>Search results</div>
-          <div className="mt-3 space-y-3">
-            {filteredSearch.map((item) => {
-              const detail = searchDetails[item.id];
-              return (
-                <div
-                  key={item.id}
-                  className="rounded-2xl px-4 py-3 flex items-start justify-between gap-3"
-                  style={{ background: NORD.panel2, border: "1px solid rgba(216,222,233,0.10)" }}
-                >
-                  <div className="min-w-0">
-                    <div className="text-base font-semibold" style={{ color: NORD.text }}>{item.name}</div>
-                    <div className="text-sm" style={{ color: NORD.muted }}>{item.code}</div>
-                    <div className="text-xs" style={{ color: NORD.subtle }}>
-                      {detail?.location ? detail.location : "Location —"}
-                    </div>
-                  </div>
-                  <Button onClick={() => { setScanValue(item.code); submitScan(item.code); }} className="px-3 py-2 text-sm">
-                    Pick
-                  </Button>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      ) : null}
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Card title="Item">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 stagger-children">
+        <Card title="Item" className="rounded-2xl p-5 animate-fade-up w-full">
           <div className="space-y-4">
             <div>
               <div className="text-sm" style={{ color: NORD.subtle }}>
@@ -530,13 +602,21 @@ export default function RemoveScreen() {
                 {scanned?.kind ?? "—"}
               </div>
             </div>
+            <div>
+              <div className="text-sm" style={{ color: NORD.subtle }}>
+                Available
+              </div>
+              <div className="text-base" style={{ color: NORD.muted }}>
+                {availableQty == null ? "—" : availableQty}
+              </div>
+            </div>
           </div>
         </Card>
 
-        <Card title="Checklist">
+        <Card title="Checklist" className="rounded-2xl p-5 animate-fade-up w-full">
           <div className="space-y-4">
             <div
-              className="rounded-2xl px-4 py-3"
+              className="rounded-2xl px-4 py-3 hover-lift"
               style={{
                 background: "rgba(46,52,64,0.32)",
                 border: "1px solid rgba(216,222,233,0.10)",
@@ -551,7 +631,7 @@ export default function RemoveScreen() {
             </div>
 
             <div
-              className="rounded-2xl px-4 py-3"
+              className="rounded-2xl px-4 py-3 hover-lift"
               style={{
                 background: "rgba(46,52,64,0.32)",
                 border: "1px solid rgba(216,222,233,0.10)",
@@ -565,24 +645,51 @@ export default function RemoveScreen() {
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-3">
-              <Button onClick={confirmItem} disabled={!scanned}>
+            <div className="flex flex-wrap gap-3 items-center">
+              <div className="flex items-center gap-3 rounded-2xl px-4 py-3"
+                style={{
+                  background: "rgba(46,52,64,0.32)",
+                  border: "1px solid rgba(216,222,233,0.10)",
+                }}
+              >
+                <div className="text-sm" style={{ color: NORD.subtle }}>
+                  Amount
+                </div>
+                <input
+                  type="number"
+                  min={1}
+                  max={maxRemove}
+                  value={removeAmount}
+                  onChange={(e) => {
+                    const next = Math.min(maxRemove, Math.max(1, Number(e.target.value || 1)));
+                    setRemoveAmount(next);
+                  }}
+                  disabled={!canRemove}
+                  className="w-24 rounded-xl px-3 py-2 text-base outline-none"
+                  style={{
+                    background: NORD.panel2,
+                    color: NORD.text,
+                    border: "1px solid rgba(216,222,233,0.14)",
+                  }}
+                />
+              </div>
+              <Button onClick={confirmItem} disabled={!scanned || !canRemove}>
                 Confirm item
               </Button>
-              <Button variant="danger" onClick={markRemoved} disabled={!confirmed}>
+              <Button variant="danger" onClick={markRemoved} disabled={!confirmed || !canRemove}>
                 Mark removed
               </Button>
             </div>
           </div>
         </Card>
 
-        <Card title="Log">
+        <Card title="Log" className="rounded-2xl p-5 animate-fade-up w-full">
           <div className="space-y-3">
             <div className="text-sm" style={{ color: NORD.subtle }}>
               Last action
             </div>
             <div
-              className="rounded-2xl px-4 py-3 text-base"
+              className="rounded-2xl px-4 py-3 text-base hover-lift"
               style={{
                 background: "rgba(46,52,64,0.32)",
                 border: "1px solid rgba(216,222,233,0.10)",
@@ -590,7 +697,7 @@ export default function RemoveScreen() {
               }}
             >
               {removed
-                ? `Removed ${scanned?.name ?? "item"}`
+                ? `Removed ${scanned?.name ?? "item"} ×${removeAmount}`
                 : "No actions yet"}
             </div>
             <div className="text-sm" style={{ color: NORD.muted }}>

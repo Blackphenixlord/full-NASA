@@ -150,8 +150,7 @@ export default function PackScreen() {
   const [selectedInside, setSelectedInside] = useState<Container | null>(null);
   const [outsideInput, setOutsideInput] = useState("");
   const [insideInput, setInsideInput] = useState("");
-  const [roomLeft, setRoomLeft] = useState(0);
-  const [insideSize, setInsideSize] = useState(0);
+  const [packAmount, setPackAmount] = useState(1);
   const [packError, setPackError] = useState<string | null>(null);
   const [packSuccess, setPackSuccess] = useState<string | null>(null);
 
@@ -192,6 +191,19 @@ export default function PackScreen() {
     return created;
   }
 
+  const liveOutside = useMemo(() => {
+    if (!selectedOutside) return null;
+    return containers.find((c) => c.id === selectedOutside.id) ?? selectedOutside;
+  }, [containers, selectedOutside]);
+
+  const liveInside = useMemo(() => {
+    if (!selectedInside) return null;
+    return containers.find((c) => c.id === selectedInside.id) ?? selectedInside;
+  }, [containers, selectedInside]);
+
+  const roomLeft = liveOutside ? Math.max(0, liveOutside.capacity - liveOutside.items.length) : 0;
+  const insideSize = liveInside ? liveInside.items.length : 0;
+
   function handleOutsideScan() {
     const value = outsideInput.trim();
     if (!value) return;
@@ -199,7 +211,6 @@ export default function PackScreen() {
     if (container) {
       setSelectedOutside(container);
       setOutsideInput("");
-      setRoomLeft(container.capacity - container.used);
       setPackError(null);
     }
   }
@@ -211,7 +222,6 @@ export default function PackScreen() {
     if (container) {
       setSelectedInside(container);
       setInsideInput("");
-      setInsideSize(container.used);
       setPackError(null);
     }
   }
@@ -219,20 +229,16 @@ export default function PackScreen() {
   function applyMatch(container: Container) {
     if (!selectedOutside) {
       setSelectedOutside(container);
-      setRoomLeft(container.capacity - container.used);
       setPackError(null);
       return;
     }
     if (!selectedInside) {
       setSelectedInside(container);
-      setInsideSize(container.used);
       setPackError(null);
       return;
     }
     setSelectedOutside(container);
     setSelectedInside(null);
-    setRoomLeft(container.capacity - container.used);
-    setInsideSize(0);
     setPackError(null);
   }
 
@@ -240,11 +246,19 @@ export default function PackScreen() {
     if (selectedOutside && selectedInside) {
       setPackError(null);
       setPackSuccess(null);
+      const qty = Math.min(100, Math.max(1, Number(packAmount || 1)));
       const applyLocalPack = () => {
         setContainers((prev) => {
           const next = prev.map((c) => {
             if (c.id !== selectedOutside.id) return c;
-            const items = c.items.includes(selectedInside.id) ? c.items : [...c.items, selectedInside.id];
+            const items = [...c.items];
+            const base = selectedInside.id;
+            const startIdx = items.filter((id) => id.startsWith(`${base}#`)).length;
+            for (let i = 0; i < qty; i += 1) {
+              const suffix = startIdx + i + 1;
+              const token = qty === 1 ? base : `${base}#${suffix}`;
+              items.push(token);
+            }
             return { ...c, items, used: items.length };
           });
           if (!next.some((c) => c.id === selectedInside.id)) {
@@ -252,14 +266,12 @@ export default function PackScreen() {
           }
           return next;
         });
-        setPackSuccess(`Packed ${selectedInside.code} into ${selectedOutside.code}`);
-        setRoomLeft(Math.max(0, selectedOutside.capacity - (selectedOutside.items.length + 1)));
-        setInsideSize(selectedInside.used);
+        setPackSuccess(`Packed ${selectedInside.code} ×${qty} into ${selectedOutside.code}`);
       };
       fetch(apiUrl("/containers/pack"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ outsideId: selectedOutside.id, insideId: selectedInside.id }),
+        body: JSON.stringify({ outsideId: selectedOutside.id, insideId: selectedInside.id, qty }),
       })
         .then((r) => {
           if (!r.ok) throw new Error("PACK_FAILED");
@@ -281,8 +293,7 @@ export default function PackScreen() {
     setSelectedInside(null);
     setOutsideInput("");
     setInsideInput("");
-    setRoomLeft(0);
-    setInsideSize(0);
+    setPackAmount(1);
     setPackError(null);
     setPackSuccess(null);
   }
@@ -340,7 +351,7 @@ export default function PackScreen() {
                       fontWeight: 600,
                     }}
                   >
-                    {selectedOutside ? selectedOutside.code : "Nothing selected"}
+                    {liveOutside ? liveOutside.code : "Nothing selected"}
                   </div>
                   <div style={{ display: "flex", gap: "0.75rem" }}>
                     <Input
@@ -385,7 +396,7 @@ export default function PackScreen() {
                       fontWeight: 600,
                     }}
                   >
-                    {selectedInside ? selectedInside.code : "Nothing selected"}
+                    {liveInside ? liveInside.code : "Nothing selected"}
                   </div>
                   <div style={{ display: "flex", gap: "0.75rem" }}>
                     <Input
@@ -397,6 +408,25 @@ export default function PackScreen() {
                       }}
                     />
                     <Button onClick={handleInsideScan}>Scan</Button>
+                  </div>
+                  <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
+                    <div style={{ fontSize: "0.85rem", color: NORD.subtle, minWidth: "78px" }}>Amount</div>
+                    <input
+                      type="number"
+                      min={1}
+                      max={100}
+                      value={packAmount}
+                      onChange={(e) => {
+                        const next = Math.min(100, Math.max(1, Number(e.target.value || 1)));
+                        setPackAmount(next);
+                      }}
+                      className="w-full rounded-xl px-4 py-2 text-base outline-none"
+                      style={{
+                        background: NORD.panel2,
+                        color: NORD.text,
+                        border: `1px solid rgba(76,86,106,0.45)`,
+                      }}
+                    />
                   </div>
                 </div>
               </Card>
@@ -410,13 +440,13 @@ export default function PackScreen() {
           <div style={{ borderRadius: "1rem", padding: "1rem", background: NORD.panel2, border: "1px solid rgba(216,222,233,0.10)" }}>
             <div style={{ fontSize: "0.85rem", color: NORD.subtle }}>Outside contents</div>
             <div style={{ marginTop: "0.5rem", fontSize: "2rem", fontWeight: 700, color: NORD.text }}>
-              {selectedOutside ? selectedOutside.items.length : 0}
+              {liveOutside ? liveOutside.items.length : 0}
             </div>
           </div>
           <div style={{ borderRadius: "1rem", padding: "1rem", background: NORD.panel2, border: "1px solid rgba(216,222,233,0.10)" }}>
             <div style={{ fontSize: "0.85rem", color: NORD.subtle }}>Inside contents</div>
             <div style={{ marginTop: "0.5rem", fontSize: "2rem", fontWeight: 700, color: NORD.text }}>
-              {selectedInside ? selectedInside.items.length : 0}
+              {liveInside ? liveInside.items.length : 0}
             </div>
           </div>
           <div style={{ borderRadius: "1rem", padding: "1rem", background: NORD.panel2, border: "1px solid rgba(216,222,233,0.10)" }}>

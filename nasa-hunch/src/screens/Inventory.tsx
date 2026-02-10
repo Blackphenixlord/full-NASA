@@ -316,7 +316,7 @@ export default function Inventory() {
           type="number"
           min={1}
           value={scanQty}
-          onChange={(e) => setScanQty(Math.max(1, Number(e.target.value || 1)))}
+          onChange={(e) => setScanQty(Math.min(100, Math.max(1, Number(e.target.value || 1))))}
           style={{
             width: 88,
             padding: "0.95rem 1rem",
@@ -536,7 +536,7 @@ export default function Inventory() {
                   type="number"
                   min={1}
                   value={formQty}
-                  onChange={(e) => setFormQty(Math.max(1, Number(e.target.value || 1)))}
+                  onChange={(e) => setFormQty(Math.min(100, Math.max(1, Number(e.target.value || 1))))}
                   style={{ padding: "0.85rem 1rem", borderRadius: 14, border: "1px solid rgba(216,222,233,0.12)", background: NORD.panel2, color: NORD.text }}
                 />
               </label>

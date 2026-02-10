@@ -9,6 +9,13 @@ interface StowLocation {
   status: "occupied" | "empty" | "reserved";
 }
 
+interface TagItem {
+  id: string;
+  code: string;
+  name: string;
+  location?: string;
+}
+
 const NORD = {
   bg: "#2E3440",
   panel: "#3B4252",
@@ -93,7 +100,8 @@ export default function StowScreen() {
 
   const [selectedLocation, setSelectedLocation] = useState<StowLocation | null>(null);
   const [locations, setLocations] = useState<StowLocation[]>([]);
-  const [selectedShelf, setSelectedShelf] = useState<string | "ALL">("S1");
+  const [tagItems, setTagItems] = useState<TagItem[]>([]);
+  const [selectedShelf, setSelectedShelf] = useState<string>("S1");
   const [selectedDepth, setSelectedDepth] = useState("D1");
   const [unitInput, setUnitInput] = useState("");
   const [selectedUnit, setSelectedUnit] = useState<string | null>(null);
@@ -110,13 +118,35 @@ export default function StowScreen() {
     setLocations(data);
   }
 
+  async function refreshTagItems() {
+    const res = await fetch(apiUrl("/tag/items"));
+    if (!res.ok) throw new Error(await res.text());
+    const data = (await res.json()) as TagItem[];
+    setTagItems(Array.isArray(data) ? data : []);
+  }
+
   useEffect(() => {
     refreshLocations().catch(console.error);
+    refreshTagItems().catch(console.error);
   }, []);
+
+  const itemsByLocation = useMemo(() => {
+    const map = new Map<string, TagItem[]>();
+    for (const item of tagItems) {
+      const loc = String(item.location ?? "").trim().toUpperCase();
+      if (!loc || loc.startsWith("IRA") || loc.startsWith("IRB")) continue;
+      const slotId = loc.split("/")[0];
+      if (!slotId) continue;
+      const list = map.get(slotId) ?? [];
+      list.push(item);
+      map.set(slotId, list);
+    }
+    return map;
+  }, [tagItems]);
 
   const filteredLocations = useMemo(() => {
     return locations.filter((loc) => {
-      if (selectedShelf !== "ALL" && loc.shelf !== selectedShelf) return false;
+      if (loc.shelf !== selectedShelf) return false;
       if (selectedDepth && loc.depth !== selectedDepth) return false;
       return true;
     });
@@ -132,7 +162,37 @@ export default function StowScreen() {
   function handleLocationScan() {
     const value = locationInput.trim().toUpperCase();
     if (!value) return;
-    const match = locations.find((loc) => loc.id.toUpperCase() === value);
+    const normalized = value.replace(/[^A-Z0-9]/g, "");
+    let candidateId = normalized;
+
+    if (/^S\d$/.test(normalized)) {
+      setSelectedShelf(normalized);
+      setLocationInput("");
+      setLocationError(null);
+      return;
+    }
+
+    if (/^D\d$/.test(normalized)) {
+      setSelectedDepth(normalized);
+      setLocationInput("");
+      setLocationError(null);
+      return;
+    }
+
+    // Allow shorthand like "L1" by using current shelf/depth.
+    if (/^L\d+$/.test(normalized)) {
+      candidateId = `${selectedShelf}${selectedDepth}${normalized}`;
+    }
+
+    if (/^S\dD\d$/.test(normalized)) {
+      setSelectedShelf(normalized.slice(0, 2));
+      setSelectedDepth(normalized.slice(2));
+      setLocationInput("");
+      setLocationError(null);
+      return;
+    }
+
+    const match = locations.find((loc) => loc.id.toUpperCase() === candidateId);
     if (match) {
       setSelectedLocation(match);
       setSelectedShelf(match.shelf);
@@ -187,11 +247,12 @@ export default function StowScreen() {
     }
   }
 
-  const shelvesToRender = selectedShelf === "ALL" ? shelves : [selectedShelf];
-  const locationsByShelf = shelvesToRender.map((shelf) => ({
-    shelf,
-    items: filteredLocations.filter((loc) => loc.shelf === shelf),
-  }));
+  const locationsByShelf = [
+    {
+      shelf: selectedShelf,
+      items: filteredLocations,
+    },
+  ];
 
   return (
     <div
@@ -314,12 +375,6 @@ export default function StowScreen() {
                 <div>
                   <div style={{ fontSize: "0.8rem", color: NORD.subtle, marginBottom: "0.4rem" }}>Shelf</div>
                   <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                    <Button
-                      variant={selectedShelf === "ALL" ? "primary" : "secondary"}
-                      onClick={() => setSelectedShelf("ALL")}
-                    >
-                      All
-                    </Button>
                     {shelves.map((s) => (
                       <Button
                         key={s}
@@ -354,8 +409,12 @@ export default function StowScreen() {
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "0.75rem" }}>
                     {shelfGroup.items.map((loc) => {
-                      const tone = getLocationTone(loc.status);
+                      const locItems = itemsByLocation.get(loc.id) ?? [];
+                      const effectiveStatus = locItems.length ? "occupied" : loc.status;
+                      const tone = getLocationTone(effectiveStatus);
                       const isSel = selectedLocation?.id === loc.id;
+                      const primaryItem = locItems[0];
+                      const extraCount = locItems.length > 1 ? locItems.length - 1 : 0;
                       return (
                         <button
                           key={loc.id}
@@ -374,7 +433,14 @@ export default function StowScreen() {
                           }}
                         >
                           <div style={{ fontSize: "0.95rem", fontWeight: 600 }}>{loc.level}</div>
-                          <div style={{ fontSize: "0.75rem", color: tone.text }}>{getLocationLabel(loc.status)}</div>
+                          <div style={{ fontSize: "0.72rem", color: NORD.muted }}>{loc.id}</div>
+                          <div style={{ fontSize: "0.75rem", color: tone.text }}>{getLocationLabel(effectiveStatus)}</div>
+                          {primaryItem ? (
+                            <div style={{ fontSize: "0.72rem", color: NORD.subtle }}>
+                              {primaryItem.code ?? primaryItem.id}
+                              {extraCount ? ` +${extraCount}` : ""}
+                            </div>
+                          ) : null}
                         </button>
                       );
                     })}

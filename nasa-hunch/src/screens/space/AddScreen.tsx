@@ -200,6 +200,8 @@ type DirectoryEntry = {
   label: string;
   tagId: string;
   home: string;
+  qty?: number | null;
+  maxQty?: number | null;
 };
 
 type CrewScanResponse = {
@@ -207,12 +209,16 @@ type CrewScanResponse = {
   name: string;
   tagId: string;
   home?: string;
+  location?: string;
+  qty?: number | null;
+  maxQty?: number | null;
 };
 
 type SearchItem = {
   id: string;
   code: string;
   name: string;
+  location?: string;
 };
 
 export default function AddScreen() {
@@ -225,6 +231,14 @@ export default function AddScreen() {
   const [searchItems, setSearchItems] = useState<SearchItem[]>([]);
   const [searchDetails, setSearchDetails] = useState<Record<string, { home?: string }>>({});
   const fetchedDetailsRef = useRef<Set<string>>(new Set());
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [locationPreview, setLocationPreview] = useState<string | null>(null);
+  const [returnAmount, setReturnAmount] = useState(1);
+
+  const availableQty = typeof scanned?.qty === "number" ? scanned.qty : null;
+  const maxQty = typeof scanned?.maxQty === "number" ? scanned.maxQty : null;
+  const maxReturn = availableQty != null && maxQty != null ? Math.max(0, maxQty - availableQty) : 100;
+  const canReturn = maxReturn > 0;
 
   const scan = useCallback(async (override?: string) => {
     const raw = (override ?? scanInput).trim();
@@ -238,25 +252,31 @@ export default function AddScreen() {
       });
       if (!res.ok) throw new Error("SCAN_FAILED");
       const data = (await res.json()) as CrewScanResponse;
+      const match = searchItems.find((item) => item.code === raw || item.id === raw);
+      const resolvedHome = data.home || data.location || match?.location || "";
       const entry: DirectoryEntry = {
         id: data.id,
         label: data.name,
         tagId: data.tagId ?? scanInput.trim(),
-        home: data.home ?? "",
+        home: resolvedHome,
+        qty: typeof data.qty === "number" ? data.qty : null,
+        maxQty: typeof data.maxQty === "number" ? data.maxQty : null,
       };
       setScanned(entry);
       setScanId(entry.tagId);
       setConfirmed(false);
       setReturned(false);
       setScanInput("");
+      setLocationPreview(null);
     } catch {
       setError("Scan not found.");
       setScanned(null);
       setScanId(null);
       setConfirmed(false);
       setReturned(false);
+      setLocationPreview(null);
     }
-  }, [scanInput]);
+  }, [scanInput, searchItems]);
 
   useEffect(() => {
     fetch(apiUrl("/tag/items"))
@@ -267,6 +287,7 @@ export default function AddScreen() {
           id: item.id,
           code: item.code ?? item.id,
           name: item.name ?? item.id,
+          location: item.location ?? "",
         })));
       })
       .catch(() => setSearchItems([]));
@@ -295,7 +316,7 @@ export default function AddScreen() {
           if (!data) return;
           setSearchDetails((prev) => ({
             ...prev,
-            [item.id]: { home: data.home ?? "" },
+            [item.id]: { home: data.home || data.location || item.location || "" },
           }));
         })
         .catch(() => {});
@@ -310,6 +331,14 @@ export default function AddScreen() {
     },
   });
 
+  useEffect(() => {
+    if (maxReturn <= 0) {
+      setReturnAmount(1);
+      return;
+    }
+    setReturnAmount((prev) => Math.min(maxReturn, Math.max(1, prev)));
+  }, [maxReturn]);
+
   function confirmItem() {
     if (!scanned) return;
     setConfirmed(true);
@@ -319,21 +348,34 @@ export default function AddScreen() {
     if (!scanned) return;
     if (!confirmed) return;
     try {
+      const parsed = Number(returnAmount || 1);
+      const base = Number.isFinite(parsed) ? parsed : 1;
+      const cap = maxReturn > 0 ? maxReturn : 1;
+      const qty = Math.min(cap, Math.max(1, base));
       const res = await fetch(apiUrl("/crew/return"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ unitId: scanned.id, home: scanned.home }),
+        body: JSON.stringify({ unitId: scanned.id, home: scanned.home, qty }),
       });
       if (!res.ok) throw new Error("RETURN_FAILED");
       setReturned(true);
+      setScanned((prev) => {
+        if (!prev || typeof prev.qty !== "number") return prev;
+        const nextQty = maxQty != null ? Math.min(maxQty, prev.qty + qty) : prev.qty + qty;
+        return { ...prev, qty: nextQty };
+      });
     } catch {
       setReturned(false);
       setError("Return failed. Try again.");
     }
   }
 
-  const homeCode = scanned?.home ?? "—";
-  const homePlain = scanned ? locationToPlainEnglish(scanned.home) : "—";
+  const homeCode = scanned?.home ?? locationPreview ?? "—";
+  const homePlain = scanned
+    ? locationToPlainEnglish(scanned.home)
+    : locationPreview
+      ? locationToPlainEnglish(locationPreview)
+      : "—";
 
   return (
     <div className="h-full w-full flex flex-col gap-4">
@@ -357,17 +399,69 @@ export default function AddScreen() {
       >
         <div className="flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row gap-3">
-            <input
-              value={scanInput}
-              onChange={(e) => setScanInput(e.target.value)}
-              placeholder="Scan RFID or enter unit ID"
-              className="w-full rounded-2xl px-4 py-4 text-lg outline-none"
-              style={{
-                background: NORD.panel2,
-                color: NORD.text,
-                border: "1px solid rgba(216,222,233,0.12)",
-              }}
-            />
+            <div className="relative w-full">
+              <input
+                value={scanInput}
+                onChange={(e) => setScanInput(e.target.value)}
+                placeholder="Scan RFID or enter unit ID"
+                className="w-full rounded-2xl px-4 py-4 text-lg outline-none"
+                onFocus={() => setDropdownOpen(true)}
+                onBlur={() => window.setTimeout(() => setDropdownOpen(false), 120)}
+                style={{
+                  background: NORD.panel2,
+                  color: NORD.text,
+                  border: "1px solid rgba(216,222,233,0.12)",
+                }}
+              />
+              {dropdownOpen && filteredSearch.length ? (
+                <div
+                  className="absolute left-0 right-0 mt-2 overflow-hidden rounded-2xl search-overlay"
+                  style={{ zIndex: 1000 }}
+                >
+                  <div
+                    className="grid grid-cols-[1.2fr_1fr_1.2fr] gap-2 px-4 py-2 text-xs search-overlay-header"
+                    style={{ color: NORD.subtle }}
+                  >
+                    <div>Item</div>
+                    <div>RFID</div>
+                    <div>Location</div>
+                  </div>
+                  {filteredSearch.map((item) => {
+                    const detail = searchDetails[item.id];
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => {
+                          setScanInput(item.code);
+                          setLocationPreview(detail?.home ?? item.location ?? null);
+                          scan(item.code);
+                          setDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-4 py-3 transition search-overlay-row"
+                      >
+                        <div className="grid grid-cols-[1.2fr_1fr_1.2fr] gap-2">
+                          <div className="min-w-0">
+                            <div className="text-sm font-semibold" style={{ color: NORD.text }}>
+                              {item.name}
+                            </div>
+                            <div className="text-xs" style={{ color: NORD.muted }}>
+                              {item.id}
+                            </div>
+                          </div>
+                          <div className="text-sm" style={{ color: NORD.subtle }}>
+                            {item.code}
+                          </div>
+                          <div className="text-sm" style={{ color: NORD.subtle }}>
+                            {detail?.home || item.location || "—"}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </div>
             <Button className="w-full sm:w-auto py-4 text-lg" onClick={scan}>
               Scan
             </Button>
@@ -393,37 +487,7 @@ export default function AddScreen() {
             </div>
           ) : null}
 
-          {filteredSearch.length ? (
-            <div
-              className="rounded-2xl p-4"
-              style={{ background: NORD.panel2, border: "1px solid rgba(216,222,233,0.10)" }}
-            >
-              <div className="text-sm" style={{ color: NORD.subtle }}>Search results</div>
-              <div className="mt-3 space-y-3">
-                {filteredSearch.map((item) => {
-                  const detail = searchDetails[item.id];
-                  return (
-                    <div
-                      key={item.id}
-                      className="rounded-2xl px-4 py-3 flex items-start justify-between gap-3"
-                      style={{ background: "rgba(46,52,64,0.35)", border: "1px solid rgba(216,222,233,0.10)" }}
-                    >
-                      <div className="min-w-0">
-                        <div className="text-base font-semibold" style={{ color: NORD.text }}>{item.name}</div>
-                        <div className="text-sm" style={{ color: NORD.muted }}>{item.code}</div>
-                        <div className="text-xs" style={{ color: NORD.subtle }}>
-                          {detail?.home ? detail.home : "Home —"}
-                        </div>
-                      </div>
-                      <Button onClick={() => { setScanInput(item.code); scan(item.code); }} className="px-3 py-2 text-sm">
-                        Pick
-                      </Button>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ) : null}
+          {null}
 
           <div
             className="rounded-2xl p-5"
@@ -454,6 +518,10 @@ export default function AddScreen() {
               <div className="text-sm" style={{ color: NORD.muted }}>Item</div>
               <div className="mt-1 text-2xl font-semibold" style={{ color: NORD.text }}>{scanned.label}</div>
               <div className="mt-1 text-sm" style={{ color: NORD.subtle }}>{scanned.id}</div>
+              <div className="mt-3 text-sm" style={{ color: NORD.muted }}>Available</div>
+              <div className="mt-1 text-base" style={{ color: NORD.subtle }}>
+                {availableQty == null ? "—" : availableQty}
+              </div>
             </div>
           ) : null}
         </div>
@@ -508,11 +576,38 @@ export default function AddScreen() {
         </Card>
 
         <Card title="Mark returned" className="w-full">
+          <div className="mb-4 flex items-center gap-3 rounded-2xl px-4 py-3"
+            style={{
+              background: "rgba(46,52,64,0.32)",
+              border: "1px solid rgba(216,222,233,0.10)",
+            }}
+          >
+            <div className="text-sm" style={{ color: NORD.subtle }}>
+              Amount
+            </div>
+            <input
+              type="number"
+              min={1}
+              max={Math.max(1, maxReturn)}
+              value={returnAmount}
+              onChange={(e) => {
+                const next = Math.min(Math.max(1, maxReturn || 1), Math.max(1, Number(e.target.value || 1)));
+                setReturnAmount(next);
+              }}
+              disabled={!canReturn}
+              className="w-24 rounded-xl px-3 py-2 text-base outline-none"
+              style={{
+                background: NORD.panel2,
+                color: NORD.text,
+                border: "1px solid rgba(216,222,233,0.14)",
+              }}
+            />
+          </div>
           <Button
             variant="success"
             className="w-full py-5 text-xl"
             onClick={markReturned}
-            disabled={!scanned || !confirmed || returned}
+            disabled={!scanned || !confirmed || returned || !canReturn}
           >
             {returned ? "Returned ✓" : "Mark as returned"}
           </Button>
@@ -521,6 +616,8 @@ export default function AddScreen() {
               ? "Inventory updated."
               : !scanned
                 ? "Disabled until something is scanned."
+                : !canReturn
+                  ? "Cannot return more. Max reached."
                 : !confirmed
                   ? "Disabled until the item is confirmed."
                   : "Ready."}

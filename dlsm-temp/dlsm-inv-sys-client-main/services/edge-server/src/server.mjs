@@ -70,13 +70,18 @@ function createMemoryStore() {
   ]);
 
   const addUnit = (id, kind, name, category, metadata = {}) => {
+    const meta = { ...(metadata ?? {}) };
+    if (kind === "Item") {
+      if (typeof meta.maxQty !== "number") meta.maxQty = 100;
+      if (typeof meta.qty !== "number") meta.qty = 10;
+    }
     units.set(id, {
       id,
       kind,
       name,
       category,
       status: "ACTIVE",
-      metadata,
+      metadata: meta,
     });
   };
 
@@ -362,6 +367,25 @@ function createMemoryStore() {
     }
   }
 
+  const stowIds = stowLocations.map((loc) => loc.id);
+  const hash = (s) =>
+    String(s)
+      .split("")
+      .reduce((acc, ch) => (acc * 31 + ch.charCodeAt(0)) >>> 0, 0);
+
+  for (const unit of units.values()) {
+    const meta = unit.metadata ?? {};
+    const home = String(meta.homeLocation || "").trim();
+    const top = home ? home.split("/")[0] : "";
+    if (top) {
+      meta.location = top;
+    } else if (!meta.location && stowIds.length) {
+      const idx = hash(unit.id) % stowIds.length;
+      meta.location = stowIds[idx];
+    }
+    unit.metadata = meta;
+  }
+
   return {
     units,
     identifiers,
@@ -401,7 +425,7 @@ function memEnsureUnitForScan(raw) {
       name: "Unmapped item",
       category: "Unknown",
       status: "ACTIVE",
-      metadata: { homeLocation: "", trashType: "" },
+      metadata: { homeLocation: "", trashType: "", qty: 10, maxQty: 100 },
     });
   }
   memory.identifiers.set(base, { value: base, unitId, status: "NEEDS_VERIFY", type: "RFID", updated_at: new Date().toISOString() });
@@ -421,7 +445,14 @@ function memTagItems() {
     }
     if (latest?.status === "NEEDS_VERIFY") status = "needs-verify";
     else if (latest?.status === "TAGGED") status = "tagged";
-    items.push({ id: unit.id, code: unit.id, name: unit.name ?? unit.id, status });
+    const meta = unit.metadata ?? {};
+    items.push({
+      id: unit.id,
+      code: unit.id,
+      name: unit.name ?? unit.id,
+      status,
+      location: meta.location ?? meta.homeLocation ?? "",
+    });
   }
   return items.sort((a, b) => a.id.localeCompare(b.id));
 }
@@ -1835,6 +1866,8 @@ app.post("/api/crew/scan", async (req, rep) => {
       home: meta.homeLocation ?? "",
       location: meta.location ?? meta.homeLocation ?? "",
       trashType: meta.trashType ?? "",
+      qty: typeof meta.qty === "number" ? meta.qty : null,
+      maxQty: typeof meta.maxQty === "number" ? meta.maxQty : null,
     };
   }
 
@@ -1850,7 +1883,7 @@ app.post("/api/crew/scan", async (req, rep) => {
       `INSERT INTO ${DSLM_SCHEMA}.units (id, kind, name, category, status, metadata)
        VALUES ($1,'Item','Unmapped item','Unknown','ACTIVE',$2)
        ON CONFLICT (id) DO NOTHING;`,
-      [createdId, JSON.stringify({ homeLocation: "", trashType: "" })]
+      [createdId, JSON.stringify({ homeLocation: "", trashType: "", qty: 10, maxQty: 100 })]
     );
     await q(
       `INSERT INTO ${DSLM_SCHEMA}.unit_identifiers (type, value, status, unit_id)
@@ -1869,6 +1902,9 @@ app.post("/api/crew/scan", async (req, rep) => {
   const metadata = metaRows[0]?.metadata ?? {};
   const location = await getUnitLocationPath(pool, unitId);
 
+  const qty = typeof metadata.qty === "number" ? metadata.qty : unit.kind === "Item" ? 10 : null;
+  const maxQty = typeof metadata.maxQty === "number" ? metadata.maxQty : unit.kind === "Item" ? 100 : null;
+
   return {
     id: unitId,
     name: unit.name ?? unitId,
@@ -1877,15 +1913,30 @@ app.post("/api/crew/scan", async (req, rep) => {
     home: metadata.homeLocation ?? "",
     location,
     trashType: metadata.trashType ?? "",
+    qty,
+    maxQty,
   };
 });
 
 app.post("/api/crew/return", async (req, rep) => {
-  const { unitId, home } = req.body ?? {};
+  const { unitId, home, qty, amount } = req.body ?? {};
   const id = normalizeUnitId(unitId);
   if (!id) return rep.code(400).send({ error: "BAD_REQUEST" });
   if (USE_MEMORY) {
-    if (memory) memory.events.push({ type: "RETURN", unitId: id, payload: { home }, when: new Date().toISOString() });
+    if (memory) {
+      const unit = memory.units.get(id);
+      const parsedQty = Number(qty ?? amount ?? 1);
+      const requested = Math.min(100, Math.max(1, Number.isFinite(parsedQty) ? parsedQty : 1));
+      const meta = unit?.metadata ?? {};
+      const maxQty = typeof meta.maxQty === "number" ? meta.maxQty : 100;
+      if (typeof meta.qty === "number") {
+        meta.qty = Math.min(maxQty, meta.qty + requested);
+      } else if (unit) {
+        meta.qty = Math.min(maxQty, requested);
+      }
+      if (unit) unit.metadata = meta;
+      memory.events.push({ type: "RETURN", unitId: id, payload: { home, qty: requested }, when: new Date().toISOString() });
+    }
     return { ok: true };
   }
   await q(
@@ -1897,12 +1948,56 @@ app.post("/api/crew/return", async (req, rep) => {
 });
 
 app.post("/api/crew/remove", async (req, rep) => {
-  const { unitId } = req.body ?? {};
+  const { unitId, qty, amount } = req.body ?? {};
   const id = normalizeUnitId(unitId);
   if (!id) return rep.code(400).send({ error: "BAD_REQUEST" });
   if (USE_MEMORY) {
-    if (memory) memory.events.push({ type: "REMOVE", unitId: id, when: new Date().toISOString() });
+    if (memory) {
+      const unit = memory.units.get(id);
+      const parsedQty = Number(qty ?? amount ?? 1);
+      const requested = Math.min(100, Math.max(1, Number.isFinite(parsedQty) ? parsedQty : 1));
+      const meta = unit?.metadata ?? {};
+      if (typeof meta.qty === "number") {
+        if (requested > meta.qty) {
+          return rep.code(409).send({ error: "INSUFFICIENT_QTY", available: meta.qty });
+        }
+        meta.qty = Math.max(0, meta.qty - requested);
+        if (unit) unit.metadata = meta;
+      }
+      memory.events.push({
+        type: "REMOVE",
+        unitId: id,
+        payload: { qty: requested },
+        when: new Date().toISOString(),
+      });
+    }
     return { ok: true };
+  }
+  const parsedQty = Number(qty ?? amount ?? 1);
+  const requested = Math.min(100, Math.max(1, Number.isFinite(parsedQty) ? parsedQty : 1));
+  const { rows: unitRows } = await q(
+    `SELECT kind, metadata FROM ${DSLM_SCHEMA}.units WHERE id = $1;`,
+    [id]
+  );
+  if (!unitRows.length) return rep.code(404).send({ error: "UNIT_NOT_FOUND" });
+  const meta = unitRows[0]?.metadata ?? {};
+  const isItem = unitRows[0]?.kind === "Item";
+  if (isItem) {
+    const maxQty = typeof meta.maxQty === "number" ? meta.maxQty : 100;
+    const currentQty = typeof meta.qty === "number" ? meta.qty : 10;
+    if (requested > currentQty) {
+      return rep.code(409).send({ error: "INSUFFICIENT_QTY", available: currentQty });
+    }
+    const nextQty = Math.max(0, currentQty - requested);
+    await q(
+      `UPDATE ${DSLM_SCHEMA}.units
+       SET metadata = jsonb_set(
+         jsonb_set(coalesce(metadata, '{}'::jsonb), '{maxQty}', to_jsonb($2::int), true),
+         '{qty}', to_jsonb($3::int), true
+       )
+       WHERE id = $1;`,
+      [id, maxQty, nextQty]
+    );
   }
   await q(
     `INSERT INTO ${DSLM_SCHEMA}.events (type, entity_type, entity_id)

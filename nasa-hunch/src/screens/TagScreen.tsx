@@ -7,6 +7,7 @@ interface TagItem {
   code: string;
   name: string;
   status: "tagged" | "untagged" | "needs-verify";
+  location?: string;
 }
 
 interface Pairing {
@@ -199,7 +200,7 @@ export default function TagScreen() {
     const q = searchValue.trim().toLowerCase();
     if (!q) return items;
     return items.filter((item) =>
-      `${item.id} ${item.code} ${item.name}`.toLowerCase().includes(q)
+      `${item.id} ${item.code} ${item.name} ${item.location ?? ""}`.toLowerCase().includes(q)
     );
   }, [items, searchValue]);
 
@@ -399,27 +400,12 @@ export default function TagScreen() {
                 }}
               >
                 <div>
-                  <div className="text-sm" style={{ color: NORD.subtle }}>Shipment</div>
-                  <div className="mt-1 text-base font-semibold" style={{ color: NORD.text }}>
-                    —
-                  </div>
-                  <select
-                    className="mt-2 w-full rounded-2xl px-4 py-3 text-base outline-none"
-                    style={{
-                      background: NORD.panel3,
-                      border: "1px solid rgba(216,222,233,0.10)",
-                      color: NORD.text,
-                    }}
-                    disabled
-                  >
-                    <option value="">—</option>
-                  </select>
-                </div>
-
-                <div className="mt-5">
                   <div className="text-sm" style={{ color: NORD.subtle }}>Item</div>
                   <div className="mt-1 text-base font-semibold" style={{ color: NORD.text }}>
                     {selectedItem ? `${selectedItem.code} • ${selectedItem.name}` : "—"}
+                  </div>
+                  <div className="mt-1 text-sm" style={{ color: NORD.subtle }}>
+                    {selectedItem?.location ? `Location: ${selectedItem.location}` : "Location: —"}
                   </div>
 
                   <div className="mt-3 max-h-56 overflow-auto space-y-3 pr-1">
@@ -440,6 +426,9 @@ export default function TagScreen() {
                             </div>
                             <div className="text-sm truncate" style={{ color: NORD.subtle }}>
                               {item.name}
+                            </div>
+                            <div className="mt-1 text-xs" style={{ color: NORD.muted }}>
+                              {item.location ? `Loc ${item.location}` : "Loc —"}
                             </div>
                           </div>
                           <StatusPill

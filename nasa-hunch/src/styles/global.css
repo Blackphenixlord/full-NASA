@@ -393,12 +393,36 @@ main {
   }
 }
 
+@keyframes floaty {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes soft-pulse {
+  0% {
+    opacity: 0.92;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.94;
+  }
+}
+
 .animate-fade-up {
   animation: fade-up 420ms ease both;
 }
 
 .route-transition {
-  animation: route-bounce 520ms ease both;
+  animation: route-bounce 360ms ease both;
 }
 
 @keyframes route-bounce {
@@ -451,11 +475,106 @@ main {
   .animate-fade-up {
     animation: none;
   }
+  .animate-all,
+  .animate-all * {
+    animation: none !important;
+    transition: none !important;
+  }
+  .animate-all .rounded-2xl,
+  .animate-all .rounded-3xl,
+  .animate-all .rounded-full {
+    animation: none !important;
+  }
   .hover-lift,
   .crew-nav-button,
   .ground-nav-button {
     transition: none;
   }
+}
+
+/* Global animation + transitions (opt-in via animate-all) */
+.animate-all {
+  animation: fade-up 420ms ease both;
+}
+
+.animate-all * {
+  transition:
+    background-color 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease,
+    transform 180ms ease,
+    box-shadow 220ms ease,
+    opacity 180ms ease,
+    filter 180ms ease;
+}
+
+/* Extra motion accents for common surfaces */
+.animate-all .rounded-2xl,
+.animate-all .rounded-3xl,
+.animate-all .rounded-full {
+  animation: fade-up 360ms ease both;
+}
+
+/* Subtle hover for card-like surfaces */
+.animate-all .rounded-2xl:hover,
+.animate-all .rounded-3xl:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.18);
+}
+
+/* Stagger child entrance (opt-in) */
+.stagger-children > * {
+  animation-delay: 60ms;
+}
+
+.stagger-children > *:nth-child(2) {
+  animation-delay: 120ms;
+}
+.stagger-children > *:nth-child(3) {
+  animation-delay: 180ms;
+}
+.stagger-children > *:nth-child(4) {
+  animation-delay: 240ms;
+}
+.stagger-children > *:nth-child(5) {
+  animation-delay: 300ms;
+}
+.stagger-children > *:nth-child(6) {
+  animation-delay: 360ms;
+}
+.stagger-children > *:nth-child(7) {
+  animation-delay: 420ms;
+}
+.stagger-children > *:nth-child(8) {
+  animation-delay: 480ms;
+}
+.stagger-children > *:nth-child(9) {
+  animation-delay: 540ms;
+}
+.stagger-children > *:nth-child(10) {
+  animation-delay: 600ms;
+}
+
+/* Light hover lift on interactive elements within animate-all */
+.animate-all button,
+.animate-all a {
+  transition:
+    transform 160ms ease,
+    box-shadow 220ms ease,
+    filter 200ms ease;
+  will-change: transform, box-shadow, filter;
+}
+
+.animate-all button:hover,
+.animate-all a:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.16);
+}
+
+.animate-all button:active,
+.animate-all a:active {
+  transform: translateY(0);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.14);
 }
 
 .max-w-md {
@@ -554,6 +673,27 @@ main {
 
 .overflow-x-hidden {
   overflow-x: hidden;
+}
+
+/* Solid search overlay dropdown */
+.search-overlay {
+  background: #2e3440;
+  border: 1px solid rgba(236, 239, 244, 0.18);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+  max-height: 260px;
+  overflow-y: auto;
+  z-index: 60;
+  opacity: 1;
+}
+
+.search-overlay-header {
+  background: #2e3440;
+  border-bottom: 1px solid rgba(216, 222, 233, 0.18);
+}
+
+.search-overlay-row {
+  background: #2e3440;
+  border-bottom: 1px solid rgba(216, 222, 233, 0.18);
 }
 
 .place-items-center {
