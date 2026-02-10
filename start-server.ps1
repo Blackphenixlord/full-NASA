@@ -1,3 +1,4 @@
+$env:NO_DB = "1"  # Set to 1 for in-memory mode (demo data will be loaded)
 $ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
