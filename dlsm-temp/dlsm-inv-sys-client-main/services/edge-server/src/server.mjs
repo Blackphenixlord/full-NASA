@@ -6,14 +6,20 @@ const app = Fastify({
   logger: { transport: { target: "pino-pretty" } },
 });
 
-// Basic CORS support (handles preflight without extra deps)
+// Improved CORS: always set headers for all responses
 app.addHook("onRequest", async (req, rep) => {
+  if (req.method === "OPTIONS") {
+    rep.header("Access-Control-Allow-Origin", "*");
+    rep.header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+    rep.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    return rep.code(204).send();
+  }
+});
+app.addHook("onSend", async (req, rep, payload) => {
   rep.header("Access-Control-Allow-Origin", "*");
   rep.header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
   rep.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  if (req.method === "OPTIONS") {
-    return rep.code(204).send();
-  }
+  return payload;
 });
 
 const pool = new Pool({
