@@ -1,0 +1,14 @@
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import App from "./App";
+import "./index.css";
+import "./styles/global.css";
+import { ParamsProvider } from "./lib/ParamsContext";
+
+createRoot(document.getElementById("root")!).render(
+  <StrictMode>
+    <ParamsProvider>
+      <App />
+    </ParamsProvider>
+  </StrictMode>
+);
