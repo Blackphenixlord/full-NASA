@@ -24,9 +24,40 @@ function AnimatedRoutes() {
 }
 
 export default function App() {
+  // Fullscreen handler
+  function goFullscreen() {
+    const elem = document.documentElement;
+    if (elem.requestFullscreen) {
+      elem.requestFullscreen();
+    } else if ((elem as any).webkitRequestFullscreen) {
+      (elem as any).webkitRequestFullscreen();
+    } else if ((elem as any).msRequestFullscreen) {
+      (elem as any).msRequestFullscreen();
+    }
+  }
   return (
     <BrowserRouter>
       <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: "#1a1a1a" }}>
+        {/* Fullscreen button */}
+        <button
+          onClick={goFullscreen}
+          style={{
+            position: "absolute",
+            top: 10,
+            right: 10,
+            zIndex: 1000,
+            padding: "0.5em 1em",
+            fontSize: "1.1em",
+            borderRadius: "0.5em",
+            border: "none",
+            background: "#222",
+            color: "#fff",
+            cursor: "pointer",
+            opacity: 0.8,
+          }}
+        >
+          ⛶ Fullscreen
+        </button>
         {/* Main display area */}
         <main
           className="app-main animate-all"
