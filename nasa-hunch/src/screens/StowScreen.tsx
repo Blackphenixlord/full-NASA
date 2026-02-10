@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { apiUrl } from "../lib/apiBase";
 
 interface StowLocation {
   id: string;
@@ -8,43 +9,211 @@ interface StowLocation {
   status: "occupied" | "empty" | "reserved";
 }
 
+interface TagItem {
+  id: string;
+  code: string;
+  name: string;
+  location?: string;
+}
+
+const NORD = {
+  bg: "#2E3440",
+  panel: "#3B4252",
+  panel2: "#434C5E",
+  panel3: "#4C566A",
+  text: "#ECEFF4",
+  muted: "#D8DEE9",
+  subtle: "#A3ABB9",
+  blue: "#88C0D0",
+  blue2: "#81A1C1",
+  blue3: "#5E81AC",
+  green: "#A3BE8C",
+  yellow: "#EBCB8B",
+  red: "#BF616A",
+};
+
+function Button({
+  children,
+  variant = "primary",
+  onClick,
+  disabled,
+}: {
+  children: ReactNode;
+  variant?: "primary" | "secondary" | "ghost" | "danger";
+  onClick?: () => void;
+  disabled?: boolean;
+}) {
+  const styles = {
+    primary: { bg: NORD.blue3, fg: NORD.text, bd: "transparent", hover: NORD.blue2 },
+    secondary: { bg: NORD.blue2, fg: NORD.text, bd: "transparent", hover: NORD.blue },
+    ghost: { bg: "transparent", fg: NORD.muted, bd: "rgba(76,86,106,0.45)", hover: "rgba(76,86,106,0.22)" },
+    danger: { bg: NORD.red, fg: NORD.text, bd: "transparent", hover: "rgba(191,97,106,0.85)" },
+  } as const;
+  const s = styles[variant] ?? styles.primary;
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={
+        "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-base font-medium transition hover-lift " +
+        (disabled ? "opacity-50 cursor-not-allowed" : "hover:opacity-95")
+      }
+      style={{ background: s.bg, color: s.fg, border: `1px solid ${s.bd}` }}
+      onMouseEnter={(e) => {
+        if (disabled) return;
+        if (s.hover) e.currentTarget.style.background = s.hover;
+      }}
+      onMouseLeave={(e) => {
+        if (disabled) return;
+        e.currentTarget.style.background = s.bg;
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function Card({
+  title,
+  children,
+}: {
+  title?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className="rounded-2xl p-5 shadow-sm animate-fade-up"
+      style={{
+        background: NORD.panel,
+        border: `1px solid rgba(76,86,106,0.35)`
+      }}
+    >
+      {title ? <div className="text-base font-semibold" style={{ color: NORD.text }}>{title}</div> : null}
+      <div className={title ? "mt-4" : ""}>{children}</div>
+    </div>
+  );
+}
+
 export default function StowScreen() {
   const [stowType, setStowType] = useState<"top-level-ctb" | "irregular-item">("top-level-ctb");
 
   const [selectedLocation, setSelectedLocation] = useState<StowLocation | null>(null);
-  const [locations, setLocations] = useState<StowLocation[]>([
-    { id: "S1-D1-L1", shelf: "S1", depth: "D1", level: "L1", status: "occupied" },
-    { id: "S1-D1-L2", shelf: "S1", depth: "D1", level: "L2", status: "occupied" },
-    { id: "S1-D1-L3", shelf: "S1", depth: "D1", level: "L3", status: "occupied" },
-    { id: "S1-D1-L4", shelf: "S1", depth: "D1", level: "L4", status: "reserved" },
-    { id: "S1-D2-L1", shelf: "S1", depth: "D2", level: "L1", status: "empty" },
-    { id: "S1-D2-L2", shelf: "S1", depth: "D2", level: "L2", status: "empty" },
-    { id: "S1-D2-L3", shelf: "S1", depth: "D2", level: "L3", status: "empty" },
-    { id: "S1-D2-L4", shelf: "S1", depth: "D2", level: "L4", status: "empty" },
-    { id: "S1-D3-L1", shelf: "S1", depth: "D3", level: "L1", status: "occupied" },
-    { id: "S1-D3-L2", shelf: "S1", depth: "D3", level: "L2", status: "empty" },
-    { id: "S1-D3-L3", shelf: "S1", depth: "D3", level: "L3", status: "reserved" },
-    { id: "S1-D3-L4", shelf: "S1", depth: "D3", level: "L4", status: "empty" },
-    { id: "S1-D4-L1", shelf: "S1", depth: "D4", level: "L1", status: "empty" },
-    { id: "S1-D4-L2", shelf: "S1", depth: "D4", level: "L2", status: "occupied" },
-    { id: "S1-D4-L3", shelf: "S1", depth: "D4", level: "L3", status: "empty" },
-    { id: "S1-D4-L4", shelf: "S1", depth: "D4", level: "L4", status: "empty" },
-  ]);
+  const [locations, setLocations] = useState<StowLocation[]>([]);
+  const [tagItems, setTagItems] = useState<TagItem[]>([]);
+  const [selectedShelf, setSelectedShelf] = useState<string>("S1");
+  const [selectedDepth, setSelectedDepth] = useState("D1");
+  const [unitInput, setUnitInput] = useState("");
+  const [selectedUnit, setSelectedUnit] = useState<string | null>(null);
+  const [locationInput, setLocationInput] = useState("");
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   const depthOptions = ["D1", "D2", "D3", "D4"];
-  // const levelOptions = ["L1", "L2", "L3", "L4"];
   const shelves = ["S1", "S2", "S3"];
 
-  function getLocationColor(status: string) {
+  async function refreshLocations() {
+    const res = await fetch(apiUrl("/stow/locations"));
+    if (!res.ok) throw new Error(await res.text());
+    const data = (await res.json()) as StowLocation[];
+    setLocations(data);
+  }
+
+  async function refreshTagItems() {
+    const res = await fetch(apiUrl("/tag/items"));
+    if (!res.ok) throw new Error(await res.text());
+    const data = (await res.json()) as TagItem[];
+    setTagItems(Array.isArray(data) ? data : []);
+  }
+
+  useEffect(() => {
+    refreshLocations().catch(console.error);
+    refreshTagItems().catch(console.error);
+  }, []);
+
+  const itemsByLocation = useMemo(() => {
+    const map = new Map<string, TagItem[]>();
+    for (const item of tagItems) {
+      const loc = String(item.location ?? "").trim().toUpperCase();
+      if (!loc || loc.startsWith("IRA") || loc.startsWith("IRB")) continue;
+      const slotId = loc.split("/")[0];
+      if (!slotId) continue;
+      const list = map.get(slotId) ?? [];
+      list.push(item);
+      map.set(slotId, list);
+    }
+    return map;
+  }, [tagItems]);
+
+  const filteredLocations = useMemo(() => {
+    return locations.filter((loc) => {
+      if (loc.shelf !== selectedShelf) return false;
+      if (selectedDepth && loc.depth !== selectedDepth) return false;
+      return true;
+    });
+  }, [locations, selectedShelf, selectedDepth]);
+
+  function handleUnitScan() {
+    const value = unitInput.trim();
+    if (!value) return;
+    setSelectedUnit(value);
+    setUnitInput("");
+  }
+
+  function handleLocationScan() {
+    const value = locationInput.trim().toUpperCase();
+    if (!value) return;
+    const normalized = value.replace(/[^A-Z0-9]/g, "");
+    let candidateId = normalized;
+
+    if (/^S\d$/.test(normalized)) {
+      setSelectedShelf(normalized);
+      setLocationInput("");
+      setLocationError(null);
+      return;
+    }
+
+    if (/^D\d$/.test(normalized)) {
+      setSelectedDepth(normalized);
+      setLocationInput("");
+      setLocationError(null);
+      return;
+    }
+
+    // Allow shorthand like "L1" by using current shelf/depth.
+    if (/^L\d+$/.test(normalized)) {
+      candidateId = `${selectedShelf}${selectedDepth}${normalized}`;
+    }
+
+    if (/^S\dD\d$/.test(normalized)) {
+      setSelectedShelf(normalized.slice(0, 2));
+      setSelectedDepth(normalized.slice(2));
+      setLocationInput("");
+      setLocationError(null);
+      return;
+    }
+
+    const match = locations.find((loc) => loc.id.toUpperCase() === candidateId);
+    if (match) {
+      setSelectedLocation(match);
+      setSelectedShelf(match.shelf);
+      setSelectedDepth(match.depth);
+      setLocationInput("");
+      setLocationError(null);
+      return;
+    }
+    setLocationError(`Location not found: ${value}`);
+  }
+
+  function getLocationTone(status: string) {
     switch (status) {
       case "occupied":
-        return "#3b82f6";
+        return { bg: "rgba(163,190,140,0.08)", border: "rgba(163,190,140,0.40)", text: NORD.green };
       case "reserved":
-        return "#f59e0b";
+        return { bg: "rgba(235,203,139,0.10)", border: "rgba(235,203,139,0.40)", text: NORD.yellow };
       case "empty":
-        return "transparent";
+        return { bg: "rgba(76,86,106,0.25)", border: "rgba(216,222,233,0.10)", text: NORD.subtle };
       default:
-        return "#6b7280";
+        return { bg: "rgba(76,86,106,0.25)", border: "rgba(216,222,233,0.10)", text: NORD.subtle };
     }
   }
 
@@ -63,316 +232,225 @@ export default function StowScreen() {
 
   function handleStow() {
     if (selectedLocation) {
-      setSelectedLocation(null);
-      // Mark location as occupied
-      setLocations(
-        locations.map((loc) =>
-          loc.id === selectedLocation.id ? { ...loc, status: "occupied" as const } : loc
-        )
-      );
+      fetch(apiUrl(`/stow/locations/${encodeURIComponent(selectedLocation.id)}/occupy`), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "occupied" }),
+      })
+        .then((r) => {
+          if (!r.ok) throw new Error("STOW_FAILED");
+          return r.json();
+        })
+        .then(() => refreshLocations())
+        .catch(console.error)
+        .finally(() => setSelectedLocation(null));
     }
   }
 
-  // Group locations by shelf
-  const locationsByShelf = shelves.map((shelf) => ({
-    shelf,
-    items: locations.filter((loc) => loc.shelf === shelf),
-  }));
+  const locationsByShelf = [
+    {
+      shelf: selectedShelf,
+      items: filteredLocations,
+    },
+  ];
 
   return (
-    <section className="stow-section" style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: "1.5rem", color: "#fff", padding: "1.5rem" }}>
-      <style>{`
-        @media (max-width: 1024px) {
-          section { grid-template-columns: 1fr !important; gap: 1rem !important; }
-        }
-        @media (max-width: 768px) {
-          section { padding: 1rem !important; }
-        }
-        @media (max-width: 480px) {
-          section { padding: 0.75rem !important; gap: 0.75rem !important; }
-          h2 { font-size: 1rem !important; }
-        }
-      `}</style>
-      {/* Left sidebar - Stow controls */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-        <h2 style={{ margin: "0 0 1.5rem 0", fontSize: "1.2rem", fontWeight: 600 }}>Stow</h2>
-
-        {/* Type selection */}
-        <div>
-          <label style={{ fontSize: "0.85rem", color: "#aaa", display: "block", marginBottom: "0.75rem", fontWeight: 600 }}>
-            Type
-          </label>
-          <div style={{ display: "flex", gap: "0.5rem" }}>
-            <button
-              onClick={() => setStowType("top-level-ctb")}
-              style={{
-                flex: 1,
-                padding: "0.75rem",
-                background: stowType === "top-level-ctb" ? "#3b82f6" : "#6b7280",
-                color: "#fff",
-                border: "none",
-                borderRadius: "8px",
-                fontWeight: 600,
-                cursor: "pointer",
-                fontSize: "0.8rem",
-              }}
-            >
-              Top-level CTB
-            </button>
-            <button
-              onClick={() => setStowType("irregular-item")}
-              style={{
-                flex: 1,
-                padding: "0.75rem",
-                background: stowType === "irregular-item" ? "#3b82f6" : "#6b7280",
-                color: "#fff",
-                border: "none",
-                borderRadius: "8px",
-                fontWeight: 600,
-                cursor: "pointer",
-                fontSize: "0.8rem",
-              }}
-            >
-              Irregular item
-            </button>
-          </div>
-        </div>
-
-        {/* Scan */}
-        <div>
-          <button
-            style={{
-              width: "100%",
-              padding: "0.75rem",
-              background: "#3b82f6",
-              color: "#fff",
-              border: "none",
-              borderRadius: "8px",
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
-          >
-            Scan
-          </button>
-          <div
-            style={{
-              marginTop: "0.75rem",
-              padding: "0.75rem",
-              background: "#2a2a2a",
-              border: "1px solid #444",
-              borderRadius: "8px",
-              fontSize: "0.85rem",
-              color: "#ccc",
-              minHeight: "40px",
-              display: "flex",
-              alignItems: "center",
-            }}
-          >
-            Nothing selected
-          </div>
-        </div>
-
-        {/* Unit info */}
-        <div style={{ marginTop: "2rem" }}>
-          <div style={{ fontSize: "0.85rem", color: "#aaa", marginBottom: "0.75rem", fontWeight: 600 }}>
-            Standard CTB
-          </div>
-          <div
-            style={{
-              padding: "0.75rem",
-              background: "#2a2a2a",
-              border: "1px solid #444",
-              borderRadius: "8px",
-              fontSize: "0.9rem",
-            }}
-          >
-            Select a unit
-          </div>
-        </div>
-
-        {/* Mark stowed button */}
-        <button
-          onClick={handleStow}
-          disabled={!selectedLocation}
-          style={{
-            width: "100%",
-            padding: "0.75rem",
-            background: selectedLocation ? "#22c55e" : "#6b7280",
-            color: "#fff",
-            border: "none",
-            borderRadius: "8px",
-            fontWeight: 600,
-            cursor: selectedLocation ? "pointer" : "not-allowed",
-            opacity: selectedLocation ? 1 : 0.5,
-            marginTop: "1rem",
-          }}
-        >
-          Mark stowed
-        </button>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "0.75rem",
+        padding: "1rem",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem" }}>
+        <div style={{ fontSize: "1.15rem", fontWeight: 600, color: NORD.text }}>Stow</div>
       </div>
 
-      {/* Right side - Location grid */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-        <h2 style={{ margin: 0, fontSize: "1.2rem", fontWeight: 600 }}>Location</h2>
-
-        {/* Dimension selectors */}
-        <div style={{ display: "grid", gridTemplateColumns: "auto 1fr 1fr 1fr", gap: "1rem", alignItems: "flex-end" }}>
-          <div>
-            <label style={{ fontSize: "0.75rem", color: "#aaa", display: "block", marginBottom: "0.5rem", fontWeight: 600 }}>
-              Shelf
-            </label>
-            <div style={{ display: "flex", gap: "0.5rem" }}>
-              {shelves.map((s) => (
-                <button
-                  key={s}
-                  style={{
-                    padding: "0.5rem 0.75rem",
-                    background: "#3b82f6",
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: "4px",
-                    fontSize: "0.8rem",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                  }}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label style={{ fontSize: "0.75rem", color: "#aaa", display: "block", marginBottom: "0.5rem", fontWeight: 600 }}>
-              Depth
-            </label>
-            <div style={{ display: "flex", gap: "0.5rem" }}>
-              {depthOptions.map((d) => (
-                <button
-                  key={d}
-                  style={{
-                    flex: 1,
-                    padding: "0.5rem",
-                    background: "#3b82f6",
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: "4px",
-                    fontSize: "0.8rem",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                  }}
-                >
-                  {d}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label style={{ fontSize: "0.75rem", color: "#aaa", display: "block", marginBottom: "0.5rem", fontWeight: 600 }}>
-              Depth
-            </label>
-            <div style={{ display: "flex", gap: "0.5rem" }}>
-              {depthOptions.map((d) => (
-                <button
-                  key={`d2-${d}`}
-                  style={{
-                    flex: 1,
-                    padding: "0.5rem",
-                    background: "#3b82f6",
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: "4px",
-                    fontSize: "0.8rem",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                  }}
-                >
-                  {d}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label style={{ fontSize: "0.75rem", color: "#aaa", display: "block", marginBottom: "0.5rem", fontWeight: 600 }}>
-              Depth
-            </label>
-            <div style={{ display: "flex", gap: "0.5rem" }}>
-              {depthOptions.map((d) => (
-                <button
-                  key={`d3-${d}`}
-                  style={{
-                    flex: 1,
-                    padding: "0.5rem",
-                    background: "#3b82f6",
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: "4px",
-                    fontSize: "0.8rem",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                  }}
-                >
-                  {d}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Location grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(240px, 320px) 1fr", gap: "0.75rem" }}>
         <div>
-          {locationsByShelf.map((shelfGroup) => (
-            <div key={shelfGroup.shelf} style={{ marginBottom: "2rem" }}>
-              <div style={{ fontSize: "0.9rem", fontWeight: 600, marginBottom: "1rem", color: "#aaa" }}>
-                {shelfGroup.shelf} • D1
-              </div>
-
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(4, 1fr)",
-                  gap: "1rem",
-                }}
-              >
-                {shelfGroup.items.map((loc) => (
-                  <div
-                    key={loc.id}
-                    onClick={() => setSelectedLocation(loc)}
-                    style={{
-                      padding: "1.25rem",
-                      background: getLocationColor(loc.status) === "transparent" ? "#2a2a2a" : "rgba(0,0,0,0.3)",
-                      border:
-                        selectedLocation?.id === loc.id
-                          ? "2px solid #22c55e"
-                          : getLocationColor(loc.status) !== "transparent"
-                          ? `2px solid ${getLocationColor(loc.status)}`
-                          : "2px solid #444",
-                      borderRadius: "8px",
-                      cursor: "pointer",
-                      transition: "all 0.2s",
-                      textAlign: "center",
-                      minHeight: "100px",
-                      display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "center",
-                      alignItems: "center",
-                    }}
+          <Card title="Stow">
+            <div style={{ display: "grid", gap: "0.75rem" }}>
+              <div>
+                <div style={{ fontSize: "0.85rem", color: NORD.subtle, marginBottom: "0.5rem" }}>Type</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+                  <Button
+                    variant={stowType === "top-level-ctb" ? "primary" : "ghost"}
+                    onClick={() => setStowType("top-level-ctb")}
                   >
-                    <div style={{ fontSize: "0.9rem", fontWeight: 600, marginBottom: "0.5rem" }}>
-                      {loc.level}
-                    </div>
-                    <div style={{ fontSize: "0.75rem", color: "#aaa" }}>
-                      {getLocationLabel(loc.status)}
-                    </div>
-                  </div>
-                ))}
+                    Top-level CTB
+                  </Button>
+                  <Button
+                    variant={stowType === "irregular-item" ? "primary" : "ghost"}
+                    onClick={() => setStowType("irregular-item")}
+                  >
+                    Irregular item
+                  </Button>
+                </div>
               </div>
+
+              <div>
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  <input
+                    value={unitInput}
+                    onChange={(e) => setUnitInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleUnitScan();
+                    }}
+                    placeholder="Scan unit ID"
+                    className="w-full rounded-2xl px-4 py-2 text-sm outline-none"
+                    style={{
+                      background: NORD.panel2,
+                      color: NORD.text,
+                      border: "1px solid rgba(216,222,233,0.12)",
+                    }}
+                  />
+                  <Button onClick={handleUnitScan}>Scan</Button>
+                </div>
+                <div
+                  style={{
+                    marginTop: "0.5rem",
+                    borderRadius: "0.9rem",
+                    padding: "0.75rem",
+                    background: NORD.panel2,
+                    border: "1px solid rgba(216,222,233,0.10)",
+                    color: selectedUnit ? NORD.text : NORD.subtle,
+                  }}
+                >
+                  {selectedUnit ? selectedUnit : "Nothing selected"}
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: "0.85rem", color: NORD.subtle, marginBottom: "0.5rem" }}>Standard CTB</div>
+                <div
+                  style={{
+                    borderRadius: "0.9rem",
+                    padding: "0.75rem",
+                    background: NORD.panel2,
+                    border: "1px solid rgba(216,222,233,0.10)",
+                    color: selectedUnit ? NORD.text : NORD.subtle,
+                  }}
+                >
+                  {selectedUnit ? selectedUnit : "Select a unit"}
+                </div>
+              </div>
+
+              <Button onClick={handleStow} disabled={!selectedLocation}>
+                Mark stowed
+              </Button>
             </div>
-          ))}
+          </Card>
+        </div>
+
+        <div>
+          <Card title="Location">
+            <div style={{ display: "grid", gap: "1rem" }}>
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <input
+                  value={locationInput}
+                  onChange={(e) => setLocationInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleLocationScan();
+                  }}
+                  placeholder="Scan location (e.g., S1D1L1)"
+                  className="w-full rounded-2xl px-4 py-2 text-sm outline-none"
+                  style={{
+                    background: NORD.panel2,
+                    color: NORD.text,
+                    border: "1px solid rgba(216,222,233,0.12)",
+                  }}
+                />
+                <Button onClick={handleLocationScan}>Scan</Button>
+              </div>
+              {locationError ? (
+                <div
+                  className="rounded-2xl px-4 py-2 text-sm"
+                  style={{ background: "rgba(191,97,106,0.18)", border: "1px solid rgba(191,97,106,0.45)", color: NORD.text }}
+                >
+                  {locationError}
+                </div>
+              ) : null}
+              <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "1rem", alignItems: "center" }}>
+                <div>
+                  <div style={{ fontSize: "0.8rem", color: NORD.subtle, marginBottom: "0.4rem" }}>Shelf</div>
+                  <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                    {shelves.map((s) => (
+                      <Button
+                        key={s}
+                        variant={selectedShelf === s ? "primary" : "secondary"}
+                        onClick={() => setSelectedShelf(s)}
+                      >
+                        {s}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: "0.8rem", color: NORD.subtle, marginBottom: "0.4rem" }}>Depth</div>
+                  <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                    {depthOptions.map((d) => (
+                      <Button
+                        key={d}
+                        variant={selectedDepth === d ? "primary" : "secondary"}
+                        onClick={() => setSelectedDepth(d)}
+                      >
+                        {d}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {locationsByShelf.map((shelfGroup) => (
+                <div key={shelfGroup.shelf} style={{ display: "grid", gap: "0.75rem" }}>
+                  <div style={{ fontSize: "0.9rem", fontWeight: 600, color: NORD.subtle }}>
+                    {shelfGroup.shelf} • {selectedDepth}
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "0.75rem" }}>
+                    {shelfGroup.items.map((loc) => {
+                      const locItems = itemsByLocation.get(loc.id) ?? [];
+                      const effectiveStatus = locItems.length ? "occupied" : loc.status;
+                      const tone = getLocationTone(effectiveStatus);
+                      const isSel = selectedLocation?.id === loc.id;
+                      const primaryItem = locItems[0];
+                      const extraCount = locItems.length > 1 ? locItems.length - 1 : 0;
+                      return (
+                        <button
+                          key={loc.id}
+                          onClick={() => setSelectedLocation(loc)}
+                          style={{
+                            borderRadius: "0.9rem",
+                            padding: "1rem",
+                            background: isSel ? "rgba(136,192,208,0.18)" : tone.bg,
+                            border: isSel ? "1px solid rgba(136,192,208,0.45)" : `1px solid ${tone.border}`,
+                            color: NORD.text,
+                            textAlign: "center",
+                            minHeight: "90px",
+                            display: "grid",
+                            gap: "0.25rem",
+                            alignContent: "center",
+                          }}
+                        >
+                          <div style={{ fontSize: "0.95rem", fontWeight: 600 }}>{loc.level}</div>
+                          <div style={{ fontSize: "0.72rem", color: NORD.muted }}>{loc.id}</div>
+                          <div style={{ fontSize: "0.75rem", color: tone.text }}>{getLocationLabel(effectiveStatus)}</div>
+                          {primaryItem ? (
+                            <div style={{ fontSize: "0.72rem", color: NORD.subtle }}>
+                              {primaryItem.code ?? primaryItem.id}
+                              {extraCount ? ` +${extraCount}` : ""}
+                            </div>
+                          ) : null}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
         </div>
       </div>
-    </section>
+    </div>
   );
 }

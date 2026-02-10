@@ -1,32 +1,35 @@
 // src/App.tsx
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import CrewView from "./views/CrewView";
 import GroundView from "./views/GroundView";
-import WarehouseView from "./views/WarehouseView";
 
 /**
  * App — main shell with navigation and routing.
  * /crew  → astronaut terminal
  * /ground → logistics dashboard
- * /warehouse → warehouse/logistics operations
  */
+function AnimatedRoutes() {
+  const location = useLocation();
+  const key = `${location.pathname}${location.search}`;
+
+  return (
+    <div className="route-transition stagger-children" key={key}>
+      <Routes location={location}>
+        <Route path="/" element={<CrewView />} />
+        <Route path="/crew" element={<CrewView />} />
+        <Route path="/ground" element={<GroundView />} />
+      </Routes>
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <BrowserRouter>
-      <div
-        className="app-layout"
-        style={{
-          display: "flex",
-          minHeight: "100vh",
-          background: "#0a0a0a",
-          color: "#fff",
-          fontFamily:
-            "-apple-system,BlinkMacSystemFont,'Inter',system-ui,sans-serif",
-        }}
-      >
+      <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: "#1a1a1a" }}>
         {/* Main display area */}
         <main
-          className="app-main"
+          className="app-main animate-all"
           style={{
             flex: "1 1 auto",
             padding: "0",
@@ -34,12 +37,7 @@ export default function App() {
             width: "100%",
           }}
         >
-          <Routes>
-            <Route path="/" element={<CrewView />} />
-            <Route path="/crew" element={<CrewView />} />
-            <Route path="/ground" element={<GroundView />} />
-            <Route path="/warehouse" element={<WarehouseView />} />
-          </Routes>
+          <AnimatedRoutes />
         </main>
       </div>
     </BrowserRouter>

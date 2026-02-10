@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
+import { apiUrl } from "../lib/apiBase";
 
 interface Move {
   fromContainer: string | null;
@@ -6,6 +7,149 @@ interface Move {
   reason: string;
   sourceContext: string;
   destContext: string;
+}
+
+const NORD = {
+  bg: "#2E3440",
+  panel: "#3B4252",
+  panel2: "#434C5E",
+  panel3: "#4C566A",
+  text: "#ECEFF4",
+  muted: "#D8DEE9",
+  subtle: "#A3ABB9",
+  blue: "#88C0D0",
+  blue2: "#81A1C1",
+  blue3: "#5E81AC",
+  green: "#A3BE8C",
+  yellow: "#EBCB8B",
+  red: "#BF616A",
+  purple: "#B48EAD",
+};
+
+function Button({
+  children,
+  variant = "primary",
+  onClick,
+  disabled,
+  className,
+}: {
+  children: ReactNode;
+  variant?: "primary" | "secondary" | "ghost" | "danger";
+  onClick?: () => void;
+  disabled?: boolean;
+  className?: string;
+}) {
+  const styles = {
+    primary: { bg: NORD.blue3, fg: NORD.text, bd: "transparent", hover: NORD.blue2 },
+    secondary: { bg: NORD.blue2, fg: NORD.text, bd: "transparent", hover: NORD.blue },
+    ghost: { bg: "transparent", fg: NORD.muted, bd: "rgba(76,86,106,0.45)", hover: "rgba(76,86,106,0.22)" },
+    danger: { bg: NORD.red, fg: NORD.text, bd: "transparent", hover: "rgba(191,97,106,0.85)" },
+  } as const;
+  const s = styles[variant] ?? styles.primary;
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={
+        "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-base font-medium transition hover-lift " +
+        (disabled ? "opacity-50 cursor-not-allowed " : "hover:opacity-95 ") +
+        (className ?? "")
+      }
+      style={{ background: s.bg, color: s.fg, border: `1px solid ${s.bd}` }}
+      onMouseEnter={(e) => {
+        if (disabled) return;
+        if (s.hover) e.currentTarget.style.background = s.hover;
+      }}
+      onMouseLeave={(e) => {
+        if (disabled) return;
+        e.currentTarget.style.background = s.bg;
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function Card({
+  title,
+  children,
+  className,
+}: {
+  title?: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`rounded-2xl p-5 shadow-sm animate-fade-up ${className ?? ""}`}
+      style={{
+        background: NORD.panel,
+        border: `1px solid rgba(76,86,106,0.35)`
+      }}
+    >
+      {title ? <div className="text-base font-semibold" style={{ color: NORD.text }}>{title}</div> : null}
+      <div className={title ? "mt-4" : ""}>{children}</div>
+    </div>
+  );
+}
+
+function Input({
+  value,
+  onChange,
+  placeholder,
+  onKeyDown,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+}) {
+  return (
+    <input
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      onKeyDown={onKeyDown}
+      placeholder={placeholder}
+      className="w-full rounded-2xl px-4 py-3 text-lg outline-none"
+      style={{
+        background: NORD.panel2,
+        color: NORD.text,
+        border: `1px solid rgba(76,86,106,0.45)`
+      }}
+    />
+  );
+}
+
+function Select({
+  value,
+  onChange,
+  options,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  options: string[];
+}) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="rounded-2xl px-4 py-2.5 text-base outline-none"
+      style={{
+        background: NORD.panel3,
+        color: NORD.text,
+        border: `1px solid rgba(136,192,208,0.35)`,
+        boxShadow: "inset 0 0 0 1px rgba(46,52,64,0.35)",
+        minWidth: "220px",
+      }}
+    >
+      {options.map((o) => (
+        <option key={o} value={o} style={{ background: NORD.panel3, color: NORD.text }}>
+          {o}
+        </option>
+      ))}
+    </select>
+  );
 }
 
 export default function MoveScreen() {
@@ -21,12 +165,6 @@ export default function MoveScreen() {
   const [toInput, setToInput] = useState("");
   const [draftOpen, setDraftOpen] = useState(false);
 
-  // const locations: Location[] = [
-  //   { id: "1", code: "S1-L12/CTB-0001/CTB-0002", description: "Shelf 1, Level 12" },
-  //   { id: "2", code: "S2-L02/CTB-0001/CTB-0002", description: "Shelf 2, Level 2" },
-  //   { id: "3", code: "S3-L08/CTB-0001/CTB-0002", description: "Shelf 3, Level 8" },
-  // ];
-
   const reasonOptions = [
     "Space constraint",
     "Environmental condition",
@@ -35,6 +173,8 @@ export default function MoveScreen() {
     "Organization",
     "Maintenance",
   ];
+
+  const filteredReasons = useMemo(() => [], []);
 
   function handleFromScan() {
     if (!fromInput.trim()) return;
@@ -50,334 +190,178 @@ export default function MoveScreen() {
 
   function handleExecuteMove() {
     if (!move.fromContainer || !move.toContainer) return;
-    // Log move
-    console.log("Move executed:", move);
-    // Reset
-    setMove({
-      fromContainer: null,
-      toContainer: null,
-      reason: "Space constraint",
-      sourceContext: "",
-      destContext: "",
-    });
-  }
-
-  function handleOpenDraft() {
-    setDraftOpen(true);
+    fetch(apiUrl("/moves"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(move),
+    })
+      .then((r) => {
+        if (!r.ok) throw new Error("MOVE_FAILED");
+        return r.json();
+      })
+      .catch(console.error)
+      .finally(() => {
+        setMove({
+          fromContainer: null,
+          toContainer: null,
+          reason: "Space constraint",
+          sourceContext: "",
+          destContext: "",
+        });
+      });
   }
 
   return (
-    <section
-      className="move-section"
-      style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", color: "#fff" }}
-    >
-      {/* From section */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-        <h2 style={{ margin: 0, fontSize: "1.2rem", fontWeight: 600 }}>From</h2>
+    <div style={{ display: "flex", flexDirection: "column", gap: "1rem", padding: "1rem" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem" }}>
+        <div style={{ fontSize: "1.15rem", fontWeight: 600, color: NORD.text }}>Move</div>
+        <Button variant="ghost" onClick={() => setDraftOpen(true)}>
+          Open Draft
+        </Button>
+      </div>
 
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(12, minmax(0, 1fr))", gap: "1rem" }}>
+        <div style={{ gridColumn: "span 12" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(12, minmax(0, 1fr))", gap: "1rem" }}>
+            <div style={{ gridColumn: "span 12" }}>
+              <Card title="From">
+                <div
+                  style={{
+                    borderRadius: "1rem",
+                    padding: "1rem",
+                    background: `linear-gradient(135deg, rgba(136,192,208,0.12), rgba(0,0,0,0)), ${NORD.panel2}`,
+                    border: "1px solid rgba(136,192,208,0.28)",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.75rem",
+                  }}
+                >
+                  <div style={{ fontSize: "1.2rem", fontWeight: 600, color: NORD.text }}>
+                    {move.fromContainer ? move.fromContainer : "None selected"}
+                  </div>
+                  <div style={{ display: "flex", gap: "0.75rem" }}>
+                    <Input
+                      value={fromInput}
+                      onChange={setFromInput}
+                      placeholder="S1-L12/CTB-0001/CTB-0002"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleFromScan();
+                      }}
+                    />
+                    <Button onClick={handleFromScan}>Scan</Button>
+                    <Button variant="ghost" onClick={() => setMove({ ...move, fromContainer: null })}>
+                      Clear
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            </div>
+
+            <div style={{ gridColumn: "span 12" }}>
+              <Card title="To">
+                <div
+                  style={{
+                    borderRadius: "1rem",
+                    padding: "1rem",
+                    background: `linear-gradient(135deg, rgba(163,190,140,0.12), rgba(0,0,0,0)), ${NORD.panel2}`,
+                    border: "1px solid rgba(163,190,140,0.28)",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.75rem",
+                  }}
+                >
+                  <div style={{ fontSize: "1.2rem", fontWeight: 600, color: NORD.text }}>
+                    {move.toContainer ? move.toContainer : "None selected"}
+                  </div>
+                  <div style={{ display: "flex", gap: "0.75rem" }}>
+                    <Input
+                      value={toInput}
+                      onChange={setToInput}
+                      placeholder="S2-L02/CTB-0001/CTB-0002"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleToScan();
+                      }}
+                    />
+                    <Button onClick={handleToScan}>Scan</Button>
+                    <Button variant="ghost" onClick={() => setMove({ ...move, toContainer: null })}>
+                      Clear
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <Card title="Move">
         <div
           style={{
-            padding: "1.5rem",
-            background: "#2a2a2a",
-            border: move.fromContainer ? "2px solid #3b82f6" : "1px solid #444",
-            borderRadius: "8px",
-            minHeight: "100px",
+            borderRadius: "1rem",
+            padding: "1rem",
+            background: `linear-gradient(135deg, rgba(180,142,173,0.12), rgba(0,0,0,0)), ${NORD.panel2}`,
+            border: "1px solid rgba(180,142,173,0.26)",
             display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: move.fromContainer ? "#fff" : "#666",
-            fontSize: "0.95rem",
-            fontWeight: 500,
-            marginBottom: "1rem",
+            flexDirection: "column",
+            gap: "1rem",
           }}
         >
-          {move.fromContainer ? move.fromContainer : "None selected"}
-        </div>
-
-        <div style={{ display: "flex", gap: "0.5rem" }}>
-          <input
-            type="text"
-            value={fromInput}
-            onChange={(e) => setFromInput(e.target.value)}
-            placeholder="Scan source container"
-            style={{
-              flex: 1,
-              padding: "0.75rem",
-              background: "#2a2a2a",
-              border: "1px solid #444",
-              borderRadius: "8px",
-              color: "#fff",
-              fontSize: "0.9rem",
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleFromScan();
-            }}
-          />
-          <button
-            onClick={handleFromScan}
-            style={{
-              padding: "0.75rem 1.5rem",
-              background: "#3b82f6",
-              color: "#fff",
-              border: "none",
-              borderRadius: "8px",
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
-          >
-            Scan
-          </button>
-        </div>
-
-        {/* Source context */}
-        <div style={{ marginTop: "1rem" }}>
-          <label style={{ fontSize: "0.85rem", color: "#aaa", display: "block", marginBottom: "0.5rem", fontWeight: 600 }}>
-            Source container
-          </label>
-          <div
-            style={{
-              padding: "0.75rem",
-              background: "#2a2a2a",
-              border: "1px solid #444",
-              borderRadius: "8px",
-              fontSize: "0.85rem",
-              color: "#aaa",
-              minHeight: "60px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            No context available.
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+              <div style={{ fontSize: "0.95rem", fontWeight: 600, color: NORD.muted }}>Reason</div>
+              <Select value={move.reason} onChange={(value) => setMove({ ...move, reason: value })} options={reasonOptions} />
+            </div>
+            <div style={{ display: "flex", gap: "0.75rem" }}>
+              <Button variant="ghost" onClick={() => setMove({ ...move, fromContainer: null, toContainer: null })}>
+                Clear
+              </Button>
+              <Button onClick={handleExecuteMove} disabled={!move.fromContainer || !move.toContainer}>
+                Execute move
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
+      </Card>
 
-      {/* To section */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-        <h2 style={{ margin: 0, fontSize: "1.2rem", fontWeight: 600 }}>To</h2>
-
+      {draftOpen ? (
         <div
-          style={{
-            padding: "1.5rem",
-            background: "#2a2a2a",
-            border: move.toContainer ? "2px solid #3b82f6" : "1px solid #444",
-            borderRadius: "8px",
-            minHeight: "100px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: move.toContainer ? "#fff" : "#666",
-            fontSize: "0.95rem",
-            fontWeight: 500,
-            marginBottom: "1rem",
-          }}
-        >
-          {move.toContainer ? move.toContainer : "None selected"}
-        </div>
-
-        <div style={{ display: "flex", gap: "0.5rem" }}>
-          <input
-            type="text"
-            value={toInput}
-            onChange={(e) => setToInput(e.target.value)}
-            placeholder="Scan destination container"
-            style={{
-              flex: 1,
-              padding: "0.75rem",
-              background: "#2a2a2a",
-              border: "1px solid #444",
-              borderRadius: "8px",
-              color: "#fff",
-              fontSize: "0.9rem",
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleToScan();
-            }}
-          />
-          <button
-            onClick={handleToScan}
-            style={{
-              padding: "0.75rem 1.5rem",
-              background: "#3b82f6",
-              color: "#fff",
-              border: "none",
-              borderRadius: "8px",
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
-          >
-            Scan
-          </button>
-        </div>
-
-        {/* Destination context */}
-        <div style={{ marginTop: "1rem" }}>
-          <label style={{ fontSize: "0.85rem", color: "#aaa", display: "block", marginBottom: "0.5rem", fontWeight: 600 }}>
-            Destination container
-          </label>
-          <div
-            style={{
-              padding: "0.75rem",
-              background: "#2a2a2a",
-              border: "1px solid #444",
-              borderRadius: "8px",
-              fontSize: "0.85rem",
-              color: "#aaa",
-              minHeight: "60px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            No context available.
-          </div>
-        </div>
-      </div>
-
-      {/* Move configuration section */}
-      <div style={{ gridColumn: "1 / -1", paddingTop: "1.5rem", borderTop: "1px solid #444" }}>
-        <h2 style={{ margin: "0 0 1.5rem 0", fontSize: "1.2rem", fontWeight: 600 }}>Move</h2>
-
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem" }}>
-          {/* Reason dropdown */}
-          <div>
-            <label style={{ fontSize: "0.85rem", color: "#aaa", display: "block", marginBottom: "0.5rem", fontWeight: 600 }}>
-              Reason
-            </label>
-            <select
-              value={move.reason}
-              onChange={(e) => setMove({ ...move, reason: e.target.value })}
-              style={{
-                width: "100%",
-                padding: "0.75rem",
-                background: "#2a2a2a",
-                border: "1px solid #444",
-                borderRadius: "8px",
-                color: "#fff",
-                fontSize: "0.9rem",
-                cursor: "pointer",
-              }}
-            >
-              {reasonOptions.map((reason) => (
-                <option key={reason} value={reason} style={{ background: "#2a2a2a", color: "#fff" }}>
-                  {reason}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Empty space */}
-          <div />
-        </div>
-
-        {/* Action buttons */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginTop: "1.5rem" }}>
-          <button
-            onClick={handleOpenDraft}
-            style={{
-              padding: "0.75rem",
-              background: "#6b7280",
-              color: "#fff",
-              border: "none",
-              borderRadius: "8px",
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
-          >
-            Open Draft
-          </button>
-
-          <button
-            onClick={handleExecuteMove}
-            disabled={!move.fromContainer || !move.toContainer}
-            style={{
-              padding: "0.75rem",
-              background: move.fromContainer && move.toContainer ? "#3b82f6" : "#6b7280",
-              color: "#fff",
-              border: "none",
-              borderRadius: "8px",
-              fontWeight: 600,
-              cursor: move.fromContainer && move.toContainer ? "pointer" : "not-allowed",
-              opacity: move.fromContainer && move.toContainer ? 1 : 0.5,
-            }}
-          >
-            Execute move
-          </button>
-        </div>
-      </div>
-
-      {/* Draft modal overlay */}
-      {draftOpen && (
-        <div
+          onClick={() => setDraftOpen(false)}
           style={{
             position: "fixed",
             inset: 0,
-            background: "rgba(0,0,0,0.5)",
+            background: "rgba(0,0,0,0.45)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             zIndex: 50,
+            padding: "1rem",
           }}
-          onClick={() => setDraftOpen(false)}
         >
           <div
-            style={{
-              background: "#1a1a1a",
-              border: "1px solid #444",
-              borderRadius: "12px",
-              padding: "2rem",
-              maxWidth: "500px",
-              color: "#fff",
-            }}
             onClick={(e) => e.stopPropagation()}
+            style={{
+              background: NORD.panel3,
+              border: "1px solid rgba(236,239,244,0.08)",
+              borderRadius: "1rem",
+              padding: "1.5rem",
+              maxWidth: "520px",
+              width: "100%",
+              color: NORD.text,
+            }}
           >
-            <h3 style={{ margin: "0 0 1.5rem 0", fontSize: "1.1rem", fontWeight: 600 }}>
-              Open Draft
-            </h3>
-
-            <p style={{ color: "#aaa", marginBottom: "1.5rem", lineHeight: 1.6 }}>
+            <div style={{ fontSize: "1.1rem", fontWeight: 600 }}>Open Draft</div>
+            <div style={{ marginTop: "0.75rem", color: NORD.subtle, lineHeight: 1.6 }}>
               Create a draft move for later review and execution. This allows you to plan and validate moves before committing them to the system.
-            </p>
-
-            <div style={{ display: "flex", gap: "0.5rem" }}>
-              <button
-                onClick={() => {
-                  setDraftOpen(false);
-                  console.log("Draft created:", move);
-                }}
-                style={{
-                  flex: 1,
-                  padding: "0.75rem",
-                  background: "#3b82f6",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: "8px",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                }}
-              >
-                Create Draft
-              </button>
-              <button
-                onClick={() => setDraftOpen(false)}
-                style={{
-                  flex: 1,
-                  padding: "0.75rem",
-                  background: "#6b7280",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: "8px",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                }}
-              >
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginTop: "1rem" }}>
+              <Button onClick={() => setDraftOpen(false)}>Create Draft</Button>
+              <Button variant="ghost" onClick={() => setDraftOpen(false)}>
                 Cancel
-              </button>
+              </Button>
             </div>
           </div>
         </div>
-      )}
-    </section>
+      ) : null}
+    </div>
   );
 }

@@ -181,22 +181,39 @@ export default function GroundView() {
               <div style={{ fontSize: "0.75rem", color: NORD.muted }}>Warehouse Station</div>
             </div>
           </div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "0.5rem",
-              fontSize: "0.75rem",
-              color: NORD.muted,
-              background: NORD.panel,
-              padding: "0.4rem 0.75rem",
-              borderRadius: "0.75rem",
-              border: `1px solid rgba(216,222,233,0.10)`,
-            }}
-          >
-            <span style={{ width: "0.5rem", height: "0.5rem", borderRadius: "50%", background: NORD.green, display: "inline-block" }} />
-            Sync
-            <span style={{ color: NORD.subtle }}>{syncLabel}</span>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                fontSize: "0.75rem",
+                color: NORD.muted,
+                background: NORD.panel,
+                padding: "0.4rem 0.75rem",
+                borderRadius: "0.75rem",
+                border: `1px solid rgba(216,222,233,0.10)`,
+              }}
+            >
+              <span style={{ width: "0.5rem", height: "0.5rem", borderRadius: "50%", background: NORD.green, display: "inline-block" }} />
+              Sync
+              <span style={{ color: NORD.subtle }}>{syncLabel}</span>
+            </div>
+            <button
+              onClick={logout}
+              style={{
+                padding: "0.4rem 0.75rem",
+                borderRadius: "0.75rem",
+                border: "1px solid rgba(216,222,233,0.10)",
+                background: NORD.panel,
+                color: NORD.muted,
+                cursor: "pointer",
+                fontSize: "0.75rem",
+                fontWeight: 600,
+              }}
+            >
+              Logout
+            </button>
           </div>
         </div>
 

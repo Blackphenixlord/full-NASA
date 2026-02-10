@@ -1,28 +1,61 @@
 // src/views/CrewView.tsx
 import { useEffect, useMemo, useState } from "react";
-import Inventory from "../screens/Inventory";
+import AddScreen from "../screens/space/AddScreen";
+import RemoveScreen from "../screens/space/RemoveScreen";
+import TrashScreen from "../screens/space/TrashScreen";
 
-type ScanPhase = "idle" | "scanning" | "ok" | "unknown" | "error";
+type OperationType = "take" | "return" | "dispose";
 
 const NORD = {
   bg: "#2E3440",
   panel: "#3B4252",
   panel2: "#434C5E",
+  panel3: "#4C566A",
   text: "#ECEFF4",
   muted: "#D8DEE9",
   subtle: "#A3ABB9",
   blue: "#88C0D0",
+  blue2: "#81A1C1",
+  blue3: "#5E81AC",
   green: "#A3BE8C",
   yellow: "#EBCB8B",
   red: "#BF616A",
 };
 
-export default function CrewView() {
-  function logout() {
-    localStorage.removeItem("actor");
-    localStorage.removeItem("uiMode");
-    window.location.href = "/";
+function Icon({ name }: { name: OperationType }) {
+  const common = { width: "1rem", height: "1rem" } as const;
+  switch (name) {
+    case "take":
+      return (
+        <svg style={common} viewBox="0 0 24 24" fill="none">
+          <path d="M4 7h16v10H4V7Z" stroke={NORD.muted} strokeWidth="1.8" strokeLinejoin="round" />
+          <path d="M12 11v6" stroke={NORD.blue} strokeWidth="1.8" strokeLinecap="round" />
+          <path d="M9.5 13.5 12 11l2.5 2.5" stroke={NORD.blue} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    case "return":
+      return (
+        <svg style={common} viewBox="0 0 24 24" fill="none">
+          <path d="M4 7h16v10H4V7Z" stroke={NORD.muted} strokeWidth="1.8" strokeLinejoin="round" />
+          <path d="M12 17v-6" stroke={NORD.blue} strokeWidth="1.8" strokeLinecap="round" />
+          <path d="M14.5 14.5 12 17l-2.5-2.5" stroke={NORD.blue} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    case "dispose":
+      return (
+        <svg style={common} viewBox="0 0 24 24" fill="none">
+          <path d="M6 7h12l-1 14H7L6 7Z" stroke={NORD.muted} strokeWidth="1.8" strokeLinejoin="round" />
+          <path d="M9 7V5h6v2" stroke={NORD.muted} strokeWidth="1.8" strokeLinejoin="round" />
+          <path d="M10 11v6M14 11v6" stroke={NORD.blue} strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+      );
+    default:
+      return null;
   }
+}
+
+export default function CrewView() {
+  const [activeOp, setActiveOp] = useState<OperationType>("take");
   const [syncWhen, setSyncWhen] = useState(() => new Date());
 
   useEffect(() => {
@@ -32,253 +65,230 @@ export default function CrewView() {
 
   const syncLabel = useMemo(
     () => syncWhen.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }),
-    [syncWhen]
+    [syncWhen],
   );
-  const [phase, setPhase] = useState<ScanPhase>("idle");
-  const [msg, setMsg] = useState<string>("");
-  const [lastTag, setLastTag] = useState<string>("");
 
-  useEffect(() => {
-    function onScan(e: any) {
-      const d = e?.detail || {};
-      setPhase((d.phase as ScanPhase) ?? "idle");
+  function logout() {
+    localStorage.removeItem("actor");
+    localStorage.removeItem("uiMode");
+    window.location.href = "/";
+  }
 
-      // Debug: show what we're receiving
-      console.log("Scan event:", d);
+  const operations: { id: OperationType; label: string }[] = [
+    { id: "take", label: "Take out" },
+    { id: "return", label: "Put back" },
+    { id: "dispose", label: "Throw away" },
+  ];
 
-      if (d.itemName) {
-        setMsg(`${d.itemName}${d.totalQty != null ? ` — ${d.totalQty} available` : ""}`);
-      } else {
-        setMsg(`Scanned: ${d.cardHex}`);
-      }
-
-      if (d.cardHex) setLastTag(String(d.cardHex));
+  const renderScreen = () => {
+    switch (activeOp) {
+      case "take":
+        return <RemoveScreen />;
+      case "return":
+        return <AddScreen />;
+      case "dispose":
+        return <TrashScreen />;
+      default:
+        return <RemoveScreen />;
     }
-
-    window.addEventListener("rfid:scan", onScan as any);
-    return () => window.removeEventListener("rfid:scan", onScan as any);
-  }, []);
-
-  const border =
-    phase === "ok"
-      ? `2px solid ${NORD.green}`
-      : phase === "unknown"
-      ? `2px solid ${NORD.yellow}`
-      : phase === "error"
-      ? `2px solid ${NORD.red}`
-      : "1px solid rgba(216,222,233,0.15)";
+  };
 
   return (
     <>
       <style>{`
-        @keyframes scanSweep {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(420%); }
-        }
         @media (max-width: 768px) {
-          .crew-header {
-            flex-direction: column !important;
-          }
-          .crew-header-content {
-            width: 100%;
-          }
-          .crew-logout-btn {
-            width: 100%;
-          }
-          .crew-cards {
-            width: 100%;
-            min-width: unset !important;
-            grid-template-columns: 1fr 1fr !important;
-          }
-        }
-        @media (max-width: 480px) {
-          .crew-cards {
+          .crew-container {
             grid-template-columns: 1fr !important;
           }
+          .crew-sidebar {
+            display: flex;
+            flex-direction: row !important;
+            gap: 0.5rem;
+            padding: 1rem 1.5rem !important;
+            border-right: none !important;
+            border-bottom: 1px solid rgba(236,239,244,0.1);
+            overflow-x: auto;
+          }
+          .crew-sidebar button {
+            white-space: nowrap;
+          }
+          .crew-logout {
+            display: none;
+          }
+        }
+        .crew-nav-button:hover {
+          background: rgba(136,192,208,0.10) !important;
+          border-color: rgba(136,192,208,0.18) !important;
+        }
+        .crew-nav-button:focus-visible {
+          outline: 2px solid rgba(136,192,208,0.35);
+          outline-offset: 2px;
         }
       `}</style>
-      <section style={{ display: "grid", gap: "1rem", color: NORD.text, minHeight: "100%", background: NORD.bg, padding: "1rem" }}>
-        {/* Header */}
-        <header
-          className="crew-header"
+      <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: NORD.bg }}>
+        {/* Top Bar */}
+        <div
           style={{
             display: "flex",
-            flexWrap: "wrap",
+            alignItems: "center",
             justifyContent: "space-between",
-            alignItems: "flex-start",
-            gap: "0.75rem",
-            background: NORD.panel,
-            border: "1px solid rgba(216,222,233,0.10)",
-            borderRadius: "12px",
-            padding: "1rem 1.25rem",
+            paddingLeft: "1rem",
+            paddingRight: "1rem",
+            paddingTop: "0.75rem",
+            paddingBottom: "0.75rem",
+            borderBottom: `1px solid rgba(236,239,244,0.06)`,
           }}
         >
-          <div className="crew-header-content" style={{ minWidth: 320 }}>
-          <div
-            style={{
-              fontSize: "0.8rem",
-                color: NORD.blue,
-              fontWeight: 600,
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-              lineHeight: 1.2,
-            }}
-          >
-            Crew Terminal
-          </div>
-
-          <h1
-            style={{
-              margin: "0.25rem 0 0 0",
-              fontSize: "1.25rem",
-              fontWeight: 600,
-              lineHeight: 1.2,
-                color: NORD.text,
-            }}
-          >
-            Live Inventory Access
-          </h1>
-
-          <p
-            style={{
-              margin: "0.5rem 0 0 0",
-              fontSize: "0.8rem",
-                color: NORD.muted,
-              lineHeight: 1.4,
-              maxWidth: "650px",
-            }}
-          >
-            Search, view, and log usage of onboard supplies. All actions are automatically recorded under your role (
-            <code
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <div
               style={{
-                background: NORD.bg,
-                border: "1px solid rgba(216,222,233,0.10)",
-                borderRadius: "4px",
-                padding: "0 0.25rem",
+                borderRadius: "0.75rem",
+                padding: "0.5rem 0.75rem",
+                fontSize: "0.875rem",
+                fontWeight: 600,
+                background: NORD.panel,
+                color: NORD.text,
               }}
             >
-              astronaut
-            </code>
-            ) for mission traceability.
-          </p>
+              KSC • CREW
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+              <div style={{ fontSize: "0.875rem", fontWeight: 600, color: NORD.text }}>Astronaut • Crew</div>
+              <div style={{ fontSize: "0.75rem", color: NORD.muted }}>DSLM • Node 2 • Workstation B</div>
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                fontSize: "0.75rem",
+                color: NORD.muted,
+                background: NORD.panel,
+                padding: "0.4rem 0.75rem",
+                borderRadius: "0.75rem",
+                border: `1px solid rgba(216,222,233,0.10)`,
+              }}
+            >
+              <span style={{ width: "0.5rem", height: "0.5rem", borderRadius: "50%", background: NORD.green, display: "inline-block" }} />
+              Sync
+              <span style={{ color: NORD.subtle }}>{syncLabel}</span>
+            </div>
+            <button
+              onClick={logout}
+              style={{
+                padding: "0.4rem 0.75rem",
+                borderRadius: "0.75rem",
+                border: "1px solid rgba(216,222,233,0.10)",
+                background: NORD.panel,
+                color: NORD.muted,
+                cursor: "pointer",
+                fontSize: "0.75rem",
+                fontWeight: 600,
+              }}
+            >
+              Logout
+            </button>
+          </div>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
-          <div
+        {/* Main Container */}
+        <section className="crew-container" style={{ display: "grid", gridTemplateColumns: "200px 1fr", gap: 0, flex: 1, minHeight: 0 }}>
+          {/* Sidebar Navigation */}
+          <aside
+            className="crew-sidebar"
             style={{
               display: "flex",
-              alignItems: "center",
+              flexDirection: "column",
               gap: "0.5rem",
-              fontSize: "0.75rem",
-              color: NORD.muted,
-              background: NORD.panel2,
-              padding: "0.35rem 0.65rem",
-              borderRadius: "0.75rem",
-              border: `1px solid rgba(216,222,233,0.10)`,
+              padding: "1rem",
+              background: NORD.bg,
+              borderRight: `1px solid rgba(236,239,244,0.06)`,
+              overflowY: "auto",
             }}
           >
-            <span style={{ width: "0.5rem", height: "0.5rem", borderRadius: "50%", background: NORD.green, display: "inline-block" }} />
-            Sync
-            <span style={{ color: NORD.subtle }}>{syncLabel}</span>
-          </div>
-          <button
-            className="crew-logout-btn"
-            onClick={logout}
-            style={{
-              padding: "6px 10px",
-              borderRadius: 8,
-              border: "1px solid rgba(216,222,233,0.15)",
-              background: "transparent",
-              color: NORD.text,
-              cursor: "pointer",
-            }}
-          >
-            Logout
-          </button>
-        </div>
+            {operations.map((op) => {
+              const active = activeOp === op.id;
+              return (
+                <button
+                  className="crew-nav-button"
+                  key={op.id}
+                  onClick={() => setActiveOp(op.id)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "1rem",
+                    padding: "0.75rem 1rem",
+                    margin: 0,
+                    border: `1px solid ${active ? "rgba(136,192,208,0.22)" : "rgba(216,222,233,0.00)"}`,
+                    background: active ? "rgba(136,192,208,0.12)" : "transparent",
+                    color: active ? NORD.text : NORD.muted,
+                    borderRadius: "1rem",
+                    cursor: "pointer",
+                    fontSize: "0.95rem",
+                    fontWeight: 600,
+                    transition: "all 0.2s ease",
+                    textAlign: "left",
+                    minHeight: "56px",
+                  }}
+                >
+                  <span
+                    style={{
+                      display: "grid",
+                      placeItems: "center",
+                      width: "2.5rem",
+                      height: "2.5rem",
+                      borderRadius: "0.75rem",
+                      background: active ? "rgba(46,52,64,0.35)" : "rgba(216,222,233,0.06)",
+                      border: "1px solid rgba(216,222,233,0.10)",
+                    }}
+                  >
+                    <Icon name={op.id} />
+                  </span>
+                  <span style={{ fontSize: "1rem", fontWeight: 600 }}>{op.label}</span>
+                </button>
+              );
+            })}
 
-        {/* Right side cards */}
-        <div className="crew-cards" style={{ display: "grid", gap: 10, minWidth: 240 }}>
-          {/* Scan status indicator */}
-          <div
-            style={{
-              position: "relative",
-              overflow: "hidden",
-              background: NORD.panel2,
-              border,
-              borderRadius: "10px",
-              padding: "0.75rem 1rem",
-              fontSize: "0.75rem",
-              lineHeight: 1.4,
-            }}
-            aria-label="RFID scan status"
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-              <strong style={{ fontWeight: 600 }}>RFID</strong>
-              <span style={{ opacity: 0.75 }}>
-                {phase === "idle" ? "Ready" : phase === "scanning" ? "Scanning…" : phase.toUpperCase()}
-              </span>
-            </div>
-
-            <div style={{ marginTop: 6, opacity: 0.9 }}>
-              {msg ? msg : <span style={{ opacity: 0.65 }}>Scan a tag to log IN/OUT</span>}
-            </div>
-
-            {lastTag && (
-              <div style={{ marginTop: 6, opacity: 0.7, fontFamily: "monospace" }}>
-                last: {lastTag}
-              </div>
-            )}
-
-            {phase === "scanning" && (
-              <span
+            <div className="crew-logout" style={{ marginTop: "auto", paddingTop: "0.75rem" }}>
+              <button
+                onClick={logout}
                 style={{
-                  position: "absolute",
-                  left: 0,
-                  top: 0,
-                  bottom: 0,
-                  width: "30%",
-                  background: "rgba(255,255,255,0.12)",
-                  transform: "translateX(-100%)",
-                  animation: "scanSweep 0.9s linear infinite",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.75rem",
+                  padding: "0.65rem 0.85rem",
+                  border: "1px solid rgba(216,222,233,0.08)",
+                  background: "transparent",
+                  color: NORD.muted,
+                  cursor: "pointer",
+                  fontSize: "0.8rem",
+                  textAlign: "left",
+                  width: "100%",
+                  borderRadius: "0.75rem",
                 }}
-              />
-            )}
-          </div>
+              >
+                Logout
+              </button>
+            </div>
+          </aside>
 
-          {/* Quick help */}
-          <div
+          {/* Main Content */}
+          <main
             style={{
-              background: NORD.panel2,
-              border: "1px solid rgba(216,222,233,0.12)",
-              borderRadius: "10px",
-              padding: "0.75rem 1rem",
-              fontSize: "0.75rem",
-              lineHeight: 1.4,
-                color: NORD.text,
+              display: "flex",
+              flexDirection: "column",
+              padding: "1rem",
+              overflowY: "hidden",
+              background: NORD.bg,
+              minHeight: 0,
             }}
-            aria-label="Quick help"
           >
-            <strong style={{ display: "block", fontWeight: 600, marginBottom: "0.25rem" }}>Quick Use</strong>
-            <div>1. Scan tag (or search)</div>
-            <div>2. Pick location (optional)</div>
-            <div>3. IN / OUT logs automatically</div>
-          </div>
-        </div>
-      </header>
-
-      {/* Main functional surface */}
-      <section
-        style={{
-          background: NORD.panel,
-          border: "1px solid rgba(216,222,233,0.10)",
-          borderRadius: "12px",
-          padding: "1.5rem",
-        }}
-      >
-        <Inventory />
-      </section>
-    </section>
+            {renderScreen()}
+          </main>
+        </section>
+      </div>
     </>
   );
 }
