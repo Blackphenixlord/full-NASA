@@ -1,2 +1,0 @@
-// Warehouse view removed.
-export {};
