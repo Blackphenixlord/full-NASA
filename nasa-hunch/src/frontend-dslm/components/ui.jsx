@@ -271,14 +271,14 @@ export function Button({
       // Use darker Frost tones for fills so white text remains readable.
       primary: {
         bg: NORD.blue3,
-        fg: NORD.text,
+        fg: "rgb(236, 239, 244)", // Light text for dark background
         bd: "transparent",
         hover: NORD.blue2,
       },
       // Secondary actions still filled, but less dominant than primary.
       secondary: {
         bg: NORD.blue2,
-        fg: NORD.text,
+        fg: "rgb(236, 239, 244)", // Light text for dark background
         bd: "transparent",
         hover: NORD.blue,
       },
@@ -290,7 +290,7 @@ export function Button({
       },
       danger: {
         bg: NORD.red,
-        fg: NORD.text,
+        fg: "rgb(236, 239, 244)", // Light text for dark background
         bd: "transparent",
         hover: "rgba(191,97,106,0.85)",
       },

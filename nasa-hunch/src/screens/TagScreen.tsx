@@ -17,17 +17,17 @@ interface Pairing {
 }
 
 const NORD = {
-  bg: "#2E3440",
-  panel: "#3B4252",
-  panel2: "#434C5E",
-  panel3: "#4C566A",
-  text: "#ECEFF4",
-  subtle: "rgba(236,239,244,0.70)",
-  muted: "rgba(236,239,244,0.55)",
-  blue: "#88C0D0",
+  bg: "#ECEFF4", // Snow Storm - lightest
+  panel: "#E5E9F0", // Snow Storm - light
+  panel2: "#D8DEE9", // Snow Storm - medium
+  panel3: "#C8D0DA", // Custom lighter shade
+  text: "#2E3440", // Polar Night - darkest (for contrast on light bg)
+  muted: "#4C566A", // Polar Night - lighter
+  subtle: "#5E81AC", // Frost - for subtle text
+  blue: "rgb(80, 162, 185)", // Updated light blue
   blue2: "#81A1C1",
   blue3: "#5E81AC",
-  green: "#A3BE8C",
+  green: "rgb(110, 144, 81)", // Updated green
   yellow: "#EBCB8B",
   red: "#BF616A",
   purple: "#B48EAD",
@@ -47,10 +47,30 @@ function Button({
   className?: string;
 }) {
   const styles = {
-    primary: { bg: NORD.blue3, fg: NORD.text, bd: "transparent", hover: NORD.blue2 },
-    secondary: { bg: NORD.blue2, fg: NORD.text, bd: "transparent", hover: NORD.blue },
-    ghost: { bg: "transparent", fg: NORD.muted, bd: "rgba(76,86,106,0.45)", hover: "rgba(76,86,106,0.22)" },
-    danger: { bg: NORD.red, fg: NORD.text, bd: "transparent", hover: "rgba(191,97,106,0.85)" },
+    primary: {
+      bg: NORD.blue3,
+      fg: "rgb(236, 239, 244)",
+      bd: "transparent",
+      hover: NORD.blue2,
+    },
+    secondary: {
+      bg: NORD.blue2,
+      fg: "rgb(236, 239, 244)",
+      bd: "transparent",
+      hover: NORD.blue,
+    },
+    ghost: {
+      bg: "transparent",
+      fg: NORD.muted,
+      bd: "rgba(76,86,106,0.45)",
+      hover: "rgba(76,86,106,0.22)",
+    },
+    danger: {
+      bg: NORD.red,
+      fg: "rgb(236, 239, 244)",
+      bd: "transparent",
+      hover: "rgba(191,97,106,0.85)",
+    },
   } as const;
   const s = styles[variant] ?? styles.primary;
 
@@ -79,13 +99,39 @@ function Button({
   );
 }
 
-function StatusPill({ label, tone = "neutral" }: { label: string; tone?: string }) {
+function StatusPill({
+  label,
+  tone = "neutral",
+}: {
+  label: string;
+  tone?: string;
+}) {
   const map: Record<string, { bg: string; fg: string; bd: string }> = {
-    waiting: { bg: "rgba(129,161,193,0.14)", fg: NORD.blue2, bd: "rgba(129,161,193,0.22)" },
-    progress: { bg: "rgba(136,192,208,0.14)", fg: NORD.blue, bd: "rgba(136,192,208,0.22)" },
-    verified: { bg: "rgba(163,190,140,0.14)", fg: NORD.green, bd: "rgba(163,190,140,0.22)" },
-    issue: { bg: "rgba(191,97,106,0.14)", fg: NORD.red, bd: "rgba(191,97,106,0.22)" },
-    neutral: { bg: "rgba(76,86,106,0.22)", fg: NORD.muted, bd: "rgba(76,86,106,0.40)" },
+    waiting: {
+      bg: "rgba(129,161,193,0.12)",
+      fg: NORD.blue2,
+      bd: "rgba(129,161,193,0.20)",
+    },
+    progress: {
+      bg: "rgba(136,192,208,0.12)",
+      fg: NORD.blue,
+      bd: "rgba(136,192,208,0.20)",
+    },
+    verified: {
+      bg: "rgba(163,190,140,0.12)",
+      fg: NORD.green,
+      bd: "rgba(163,190,140,0.20)",
+    },
+    issue: {
+      bg: "rgba(191,97,106,0.12)",
+      fg: NORD.red,
+      bd: "rgba(191,97,106,0.20)",
+    },
+    neutral: {
+      bg: "rgba(76,86,106,0.15)",
+      fg: NORD.muted,
+      bd: "rgba(76,86,106,0.30)",
+    },
   };
   const s = map[tone] ?? map.neutral;
 
@@ -121,8 +167,8 @@ function Card({
     <div
       className={`rounded-2xl p-5 shadow-sm animate-fade-up ${className ?? ""}`}
       style={{
-        background: NORD.panel,
-        border: `1px solid rgba(76,86,106,0.35)`
+        background: "rgba(46,52,64,0.05)",
+        border: `1px solid rgba(76,86,106,0.35)`,
       }}
     >
       {!hideHeader ? (
@@ -130,7 +176,9 @@ function Card({
           <div className="flex items-start justify-between gap-3">
             <div>
               <div
-                className={titleLarge ? "text-xl font-semibold" : "text-lg font-semibold"}
+                className={
+                  titleLarge ? "text-xl font-semibold" : "text-lg font-semibold"
+                }
                 style={{ color: NORD.text }}
               >
                 {title}
@@ -152,11 +200,21 @@ function Card({
   );
 }
 
-function ScreenHeader({ title, subtitle, right }: { title: string; subtitle?: string; right?: ReactNode }) {
+function ScreenHeader({
+  title,
+  subtitle,
+  right,
+}: {
+  title: string;
+  subtitle?: string;
+  right?: ReactNode;
+}) {
   return (
     <div className="flex items-start justify-between gap-3">
       <div>
-        <div className="text-lg font-semibold" style={{ color: NORD.text }}>{title}</div>
+        <div className="text-lg font-semibold" style={{ color: NORD.text }}>
+          {title}
+        </div>
         {subtitle ? (
           <div className="mt-0.5 text-sm" style={{ color: NORD.subtle }}>
             {subtitle}
@@ -173,12 +231,19 @@ function MiniStat({ label, value }: { label: string; value: string }) {
     <div
       className="rounded-2xl p-4"
       style={{
-        background: "rgba(46,52,64,0.35)",
-        border: `1px solid rgba(236,239,244,0.06)`
+        background: "rgba(216,222,233,0.35)",
+        border: `1px solid rgba(76,86,106,0.15)`,
       }}
     >
-      <div className="text-sm" style={{ color: NORD.subtle }}>{label}</div>
-      <div className="mt-1 text-base font-semibold" style={{ color: NORD.text }}>{value}</div>
+      <div className="text-sm" style={{ color: NORD.subtle }}>
+        {label}
+      </div>
+      <div
+        className="mt-1 text-base font-semibold"
+        style={{ color: NORD.text }}
+      >
+        {value}
+      </div>
     </div>
   );
 }
@@ -189,18 +254,29 @@ export default function TagScreen() {
   const [selectedId, setSelectedId] = useState("");
   const [scannedUid, setScannedUid] = useState("");
   const [cardInput, setCardInput] = useState("");
-  const [uidStatus, setUidStatus] = useState<"idle" | "ready" | "paired" | "verified">("idle");
+  const [uidStatus, setUidStatus] = useState<
+    "idle" | "ready" | "paired" | "verified"
+  >("idle");
   const [searchValue, setSearchValue] = useState("");
   const [pairingInfo, setPairingInfo] = useState<Pairing | null>(null);
-  const [flashBanner, setFlashBanner] = useState<{ kind: "ok" | "warn" | "info"; title: string; detail: string } | null>(null);
+  const [flashBanner, setFlashBanner] = useState<{
+    kind: "ok" | "warn" | "info";
+    title: string;
+    detail: string;
+  } | null>(null);
   const bannerTimer = useRef<number | undefined>(undefined);
 
-  const selectedItem = useMemo(() => items.find((item) => item.id === selectedId) ?? null, [items, selectedId]);
+  const selectedItem = useMemo(
+    () => items.find((item) => item.id === selectedId) ?? null,
+    [items, selectedId],
+  );
   const filteredItems = useMemo(() => {
     const q = searchValue.trim().toLowerCase();
     if (!q) return items;
     return items.filter((item) =>
-      `${item.id} ${item.code} ${item.name} ${item.location ?? ""}`.toLowerCase().includes(q)
+      `${item.id} ${item.code} ${item.name} ${item.location ?? ""}`
+        .toLowerCase()
+        .includes(q),
     );
   }, [items, searchValue]);
 
@@ -209,7 +285,10 @@ export default function TagScreen() {
     if (!res.ok) throw new Error(await res.text());
     const data = (await res.json()) as TagItem[];
     setItems(data);
-    if ((!selectedId || !data.find((item) => item.id === selectedId)) && data.length > 0) {
+    if (
+      (!selectedId || !data.find((item) => item.id === selectedId)) &&
+      data.length > 0
+    ) {
       setSelectedId(data[0].id);
     }
   }
@@ -229,7 +308,11 @@ export default function TagScreen() {
     maxDelayMs: 35,
   });
 
-  function showBanner(kind: "ok" | "warn" | "info", title: string, detail: string) {
+  function showBanner(
+    kind: "ok" | "warn" | "info",
+    title: string,
+    detail: string,
+  ) {
     setFlashBanner({ kind, title, detail });
     if (bannerTimer.current) window.clearTimeout(bannerTimer.current);
     bannerTimer.current = window.setTimeout(() => setFlashBanner(null), 2400);
@@ -249,12 +332,18 @@ export default function TagScreen() {
   }
 
   function canPair() {
-    return Boolean(scannedUid) && Boolean(selectedItem) && uidStatus === "ready";
+    return (
+      Boolean(scannedUid) && Boolean(selectedItem) && uidStatus === "ready"
+    );
   }
 
   function doPair() {
     if (!selectedItem || !scannedUid) {
-      showBanner("warn", "Missing selection", "Scan a card and pick an item first.");
+      showBanner(
+        "warn",
+        "Missing selection",
+        "Scan a card and pick an item first.",
+      );
       return;
     }
     fetch(apiUrl("/tag/pair"), {
@@ -267,13 +356,18 @@ export default function TagScreen() {
         return r.json();
       })
       .then((resp) => {
-        const when = new Date(resp?.when ?? Date.now()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        const when = new Date(resp?.when ?? Date.now()).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
         setPairingInfo({ uid: scannedUid, itemId: selectedItem.id, when });
         setUidStatus("paired");
         showBanner("ok", "Paired", `${scannedUid} → ${selectedItem.code}`);
         refreshItems().catch(console.error);
       })
-      .catch(() => showBanner("warn", "Pair failed", "Unable to pair this tag."));
+      .catch(() =>
+        showBanner("warn", "Pair failed", "Unable to pair this tag."),
+      );
   }
 
   function doVerify() {
@@ -295,7 +389,9 @@ export default function TagScreen() {
         showBanner("ok", "Verified", `${pairingInfo.uid} confirmed`);
         refreshItems().catch(console.error);
       })
-      .catch(() => showBanner("warn", "Verify failed", "Unable to verify this tag."));
+      .catch(() =>
+        showBanner("warn", "Verify failed", "Unable to verify this tag."),
+      );
   }
 
   function toneForItem(item: TagItem) {
@@ -317,33 +413,42 @@ export default function TagScreen() {
     <div className="space-y-4">
       <ScreenHeader
         title="Tag"
-        right={(
+        right={
           <input
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
             placeholder="Search"
             className="w-full sm:w-64 rounded-2xl px-4 py-2 text-sm outline-none"
             style={{
-              background: NORD.panel2,
+              background: "rgba(46,52,64,0.08)",
               color: NORD.text,
               border: "1px solid rgba(216,222,233,0.12)",
             }}
           />
-        )}
+        }
       />
 
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-12 xl:col-span-6">
-          <Card title="RFID card" right={<StatusPill label={uidPill.label} tone={uidPill.tone} />} className="h-full">
+          <Card
+            title="RFID card"
+            right={<StatusPill label={uidPill.label} tone={uidPill.tone} />}
+            className="h-full"
+          >
             <div
               className="rounded-2xl p-5"
               style={{
-                background: NORD.panel2,
-                border: `1px solid rgba(216,222,233,0.10)`
+                background: "rgba(46,52,64,0.08)",
+                border: `1px solid rgba(216,222,233,0.10)`,
               }}
             >
-              <div className="text-sm" style={{ color: NORD.subtle }}>UID</div>
-              <div className="mt-1 text-2xl font-semibold" style={{ color: NORD.text, letterSpacing: 0.2 }}>
+              <div className="text-sm" style={{ color: NORD.subtle }}>
+                UID
+              </div>
+              <div
+                className="mt-1 text-2xl font-semibold"
+                style={{ color: NORD.text, letterSpacing: 0.2 }}
+              >
                 {scannedUid || "—"}
               </div>
 
@@ -357,13 +462,17 @@ export default function TagScreen() {
                   placeholder="Enter card UID"
                   className="w-full rounded-2xl px-4 py-2.5 text-sm outline-none"
                   style={{
-                    background: NORD.panel2,
+                    background: "rgba(46,52,64,0.08)",
                     color: NORD.text,
                     border: "1px solid rgba(216,222,233,0.12)",
                   }}
                 />
                 <Button onClick={handleManualScan}>Scan</Button>
-                <Button variant="ghost" onClick={clearScan} disabled={!scannedUid}>
+                <Button
+                  variant="ghost"
+                  onClick={clearScan}
+                  disabled={!scannedUid}
+                >
                   Clear
                 </Button>
               </div>
@@ -371,7 +480,15 @@ export default function TagScreen() {
               <div className="mt-6 grid grid-cols-1 gap-3">
                 <MiniStat
                   label="Status"
-                  value={uidStatus === "idle" ? "Waiting" : uidStatus === "ready" ? "Ready" : uidStatus === "paired" ? "Paired" : "Verified"}
+                  value={
+                    uidStatus === "idle"
+                      ? "Waiting"
+                      : uidStatus === "ready"
+                        ? "Ready"
+                        : uidStatus === "paired"
+                          ? "Paired"
+                          : "Verified"
+                  }
                 />
               </div>
             </div>
@@ -384,7 +501,7 @@ export default function TagScreen() {
               <div
                 className="rounded-2xl p-6"
                 style={{
-                  background: NORD.panel2,
+                  background: "rgba(46,52,64,0.08)",
                   border: `1px solid rgba(216,222,233,0.10)`,
                   color: NORD.muted,
                 }}
@@ -395,17 +512,26 @@ export default function TagScreen() {
               <div
                 className="rounded-2xl p-5"
                 style={{
-                  background: NORD.panel2,
+                  background: "rgba(46,52,64,0.08)",
                   border: `1px solid rgba(216,222,233,0.10)`,
                 }}
               >
                 <div>
-                  <div className="text-sm" style={{ color: NORD.subtle }}>Item</div>
-                  <div className="mt-1 text-base font-semibold" style={{ color: NORD.text }}>
-                    {selectedItem ? `${selectedItem.code} • ${selectedItem.name}` : "—"}
+                  <div className="text-sm" style={{ color: NORD.subtle }}>
+                    Item
+                  </div>
+                  <div
+                    className="mt-1 text-base font-semibold"
+                    style={{ color: NORD.text }}
+                  >
+                    {selectedItem
+                      ? `${selectedItem.code} • ${selectedItem.name}`
+                      : "—"}
                   </div>
                   <div className="mt-1 text-sm" style={{ color: NORD.subtle }}>
-                    {selectedItem?.location ? `Location: ${selectedItem.location}` : "Location: —"}
+                    {selectedItem?.location
+                      ? `Location: ${selectedItem.location}`
+                      : "Location: —"}
                   </div>
 
                   <div className="mt-3 max-h-56 overflow-auto space-y-3 pr-1">
@@ -415,24 +541,42 @@ export default function TagScreen() {
                         onClick={() => setSelectedId(item.id)}
                         className="w-full rounded-xl px-3 py-3 text-left transition"
                         style={{
-                          background: selectedId === item.id ? "rgba(136,192,208,0.18)" : NORD.panel3,
+                          background:
+                            selectedId === item.id
+                              ? "rgba(136,192,208,0.18)"
+                              : "rgba(46,52,64,0.10)",
                           border: `1px solid ${selectedId === item.id ? "rgba(136,192,208,0.32)" : "rgba(216,222,233,0.10)"}`,
                         }}
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <div className="text-base font-semibold" style={{ color: NORD.text }}>
+                            <div
+                              className="text-base font-semibold"
+                              style={{ color: NORD.text }}
+                            >
                               {item.code}
                             </div>
-                            <div className="text-sm truncate" style={{ color: NORD.subtle }}>
+                            <div
+                              className="text-sm truncate"
+                              style={{ color: NORD.subtle }}
+                            >
                               {item.name}
                             </div>
-                            <div className="mt-1 text-xs" style={{ color: NORD.muted }}>
+                            <div
+                              className="mt-1 text-xs"
+                              style={{ color: NORD.muted }}
+                            >
                               {item.location ? `Loc ${item.location}` : "Loc —"}
                             </div>
                           </div>
                           <StatusPill
-                            label={item.status === "tagged" ? "Tagged" : item.status === "needs-verify" ? "Needs verify" : "Untagged"}
+                            label={
+                              item.status === "tagged"
+                                ? "Tagged"
+                                : item.status === "needs-verify"
+                                  ? "Needs verify"
+                                  : "Untagged"
+                            }
                             tone={toneForItem(item)}
                           />
                         </div>
@@ -451,15 +595,31 @@ export default function TagScreen() {
         subtitle="Pair the scanned card to an item in the shipment, then verify the read"
         right={
           <StatusPill
-            label={uidStatus === "verified" ? "Verified" : uidStatus === "paired" ? "Paired" : canPair() ? "Ready" : "Not ready"}
-            tone={uidStatus === "verified" ? "verified" : uidStatus === "paired" ? "progress" : canPair() ? "progress" : "neutral"}
+            label={
+              uidStatus === "verified"
+                ? "Verified"
+                : uidStatus === "paired"
+                  ? "Paired"
+                  : canPair()
+                    ? "Ready"
+                    : "Not ready"
+            }
+            tone={
+              uidStatus === "verified"
+                ? "verified"
+                : uidStatus === "paired"
+                  ? "progress"
+                  : canPair()
+                    ? "progress"
+                    : "neutral"
+            }
           />
         }
       >
         <div
           className="rounded-2xl p-5"
           style={{
-            background: NORD.panel2,
+            background: "rgba(46,52,64,0.08)",
             border: "1px solid rgba(216,222,233,0.10)",
           }}
         >
@@ -482,27 +642,52 @@ export default function TagScreen() {
                 marginBottom: "0.75rem",
               }}
             >
-              <div className="text-base font-semibold" style={{ color: NORD.text }}>{flashBanner.title}</div>
-              <div className="mt-1 text-sm" style={{ color: NORD.subtle }}>{flashBanner.detail}</div>
+              <div
+                className="text-base font-semibold"
+                style={{ color: NORD.text }}
+              >
+                {flashBanner.title}
+              </div>
+              <div className="mt-1 text-sm" style={{ color: NORD.subtle }}>
+                {flashBanner.detail}
+              </div>
             </div>
           ) : null}
 
           <div className="grid grid-cols-12 gap-3 items-center">
             <div className="col-span-12">
-              <div className="text-sm" style={{ color: NORD.subtle }}>Card UID</div>
-              <div className="mt-1 text-base font-semibold" style={{ color: NORD.text }}>{scannedUid || "—"}</div>
+              <div className="text-sm" style={{ color: NORD.subtle }}>
+                Card UID
+              </div>
+              <div
+                className="mt-1 text-base font-semibold"
+                style={{ color: NORD.text }}
+              >
+                {scannedUid || "—"}
+              </div>
             </div>
             <div className="col-span-12">
-              <div className="text-sm" style={{ color: NORD.subtle }}>Object</div>
-              <div className="mt-1 text-base font-semibold" style={{ color: NORD.text }}>
-                {selectedItem ? `${selectedItem.code} • ${selectedItem.name}` : "—"}
+              <div className="text-sm" style={{ color: NORD.subtle }}>
+                Object
+              </div>
+              <div
+                className="mt-1 text-base font-semibold"
+                style={{ color: NORD.text }}
+              >
+                {selectedItem
+                  ? `${selectedItem.code} • ${selectedItem.name}`
+                  : "—"}
               </div>
             </div>
             <div className="col-span-12 flex gap-3 justify-end">
               <Button onClick={doPair} disabled={!canPair()}>
                 Pair
               </Button>
-              <Button variant="ghost" onClick={doVerify} disabled={!pairingInfo || uidStatus !== "paired"}>
+              <Button
+                variant="ghost"
+                onClick={doVerify}
+                disabled={!pairingInfo || uidStatus !== "paired"}
+              >
                 Verify
               </Button>
             </div>
@@ -512,22 +697,34 @@ export default function TagScreen() {
             <div
               className="rounded-2xl px-4 py-3 mt-3"
               style={{
-                background: uidStatus === "verified" ? "rgba(163,190,140,0.10)" : "rgba(136,192,208,0.10)",
-                border: uidStatus === "verified" ? "1px solid rgba(163,190,140,0.18)" : "1px solid rgba(136,192,208,0.18)",
+                background:
+                  uidStatus === "verified"
+                    ? "rgba(163,190,140,0.10)"
+                    : "rgba(136,192,208,0.10)",
+                border:
+                  uidStatus === "verified"
+                    ? "1px solid rgba(163,190,140,0.18)"
+                    : "1px solid rgba(136,192,208,0.18)",
               }}
             >
-              <div className="text-sm" style={{ color: NORD.subtle }}>Last pairing</div>
+              <div className="text-sm" style={{ color: NORD.subtle }}>
+                Last pairing
+              </div>
               <div className="mt-1 text-sm" style={{ color: NORD.text }}>
                 <span style={{ color: NORD.blue }}>{pairingInfo.uid}</span>
                 <span style={{ color: NORD.muted }}> → </span>
                 <span style={{ color: NORD.purple }}>{pairingInfo.itemId}</span>
-                <span style={{ color: NORD.subtle }}> • {pairingInfo.when}</span>
+                <span style={{ color: NORD.subtle }}>
+                  {" "}
+                  • {pairingInfo.when}
+                </span>
               </div>
             </div>
           ) : null}
 
           <div className="mt-3 text-sm" style={{ color: NORD.muted }}>
-            Pair writes the association (UID ↔ object). Verify checks that the reader can re-read the same UID.
+            Pair writes the association (UID ↔ object). Verify checks that the
+            reader can re-read the same UID.
           </div>
         </div>
       </Card>

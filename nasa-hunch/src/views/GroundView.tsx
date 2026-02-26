@@ -8,19 +8,19 @@ import MoveScreen from "../screens/MoveScreen";
 
 type OperationType = "receive" | "tag" | "pack" | "stow" | "move";
 
-// Nord color palette
+// Nord color palette - Light theme
 const NORD = {
-  bg: "#2E3440",
-  panel: "#3B4252",
-  panel2: "#434C5E",
-  panel3: "#4C566A",
-  text: "#ECEFF4",
-  muted: "#D8DEE9",
-  subtle: "#A3ABB9",
-  blue: "#88C0D0",
+  bg: "#ECEFF4", // Snow Storm - lightest
+  panel: "#E5E9F0", // Snow Storm - light
+  panel2: "#D8DEE9", // Snow Storm - medium
+  panel3: "#C8D0DA", // Custom lighter shade
+  text: "#2E3440", // Polar Night - darkest (for contrast on light bg)
+  muted: "#4C566A", // Polar Night - lighter
+  subtle: "#5E81AC", // Frost - for subtle text
+  blue: "rgb(80, 162, 185)", // Updated light blue
   blue2: "#81A1C1",
   blue3: "#5E81AC",
-  green: "#A3BE8C",
+  green: "rgb(110, 144, 81)", // Updated green
   yellow: "#EBCB8B",
   red: "#BF616A",
 };
@@ -31,40 +31,113 @@ function Icon({ name }: { name: OperationType }) {
     case "receive":
       return (
         <svg style={common} viewBox="0 0 24 24" fill="none">
-          <path d="M4 7h16v10H4V7Z" stroke={NORD.muted} strokeWidth="1.8" strokeLinejoin="round" />
-          <path d="M4 10h16" stroke={NORD.muted} strokeWidth="1.8" strokeLinecap="round" />
-          <path d="M8 14h8" stroke={NORD.blue} strokeWidth="1.8" strokeLinecap="round" />
+          <path
+            d="M4 7h16v10H4V7Z"
+            stroke={NORD.muted}
+            strokeWidth="1.8"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M4 10h16"
+            stroke={NORD.muted}
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          />
+          <path
+            d="M8 14h8"
+            stroke={NORD.blue}
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          />
         </svg>
       );
     case "tag":
       return (
         <svg style={common} viewBox="0 0 24 24" fill="none">
-          <path d="M20 13l-7 7-9-9V4h7l9 9Z" stroke={NORD.muted} strokeWidth="1.8" strokeLinejoin="round" />
-          <path d="M7.5 7.5h.01" stroke={NORD.blue} strokeWidth="4" strokeLinecap="round" />
+          <path
+            d="M20 13l-7 7-9-9V4h7l9 9Z"
+            stroke={NORD.muted}
+            strokeWidth="1.8"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M7.5 7.5h.01"
+            stroke={NORD.blue}
+            strokeWidth="4"
+            strokeLinecap="round"
+          />
         </svg>
       );
     case "pack":
       return (
         <svg style={common} viewBox="0 0 24 24" fill="none">
-          <path d="M7 8l5-5 5 5" stroke={NORD.muted} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M5 10h14v11H5V10Z" stroke={NORD.muted} strokeWidth="1.8" strokeLinejoin="round" />
-          <path d="M9 14h6" stroke={NORD.blue} strokeWidth="1.8" strokeLinecap="round" />
+          <path
+            d="M7 8l5-5 5 5"
+            stroke={NORD.muted}
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M5 10h14v11H5V10Z"
+            stroke={NORD.muted}
+            strokeWidth="1.8"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M9 14h6"
+            stroke={NORD.blue}
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          />
         </svg>
       );
     case "stow":
       return (
         <svg style={common} viewBox="0 0 24 24" fill="none">
-          <path d="M4 6h16v12H4V6Z" stroke={NORD.muted} strokeWidth="1.8" strokeLinejoin="round" />
-          <path d="M8 10h8M8 14h5" stroke={NORD.blue} strokeWidth="1.8" strokeLinecap="round" />
-          <path d="M12 3v3" stroke={NORD.muted} strokeWidth="1.8" strokeLinecap="round" />
+          <path
+            d="M4 6h16v12H4V6Z"
+            stroke={NORD.muted}
+            strokeWidth="1.8"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M8 10h8M8 14h5"
+            stroke={NORD.blue}
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          />
+          <path
+            d="M12 3v3"
+            stroke={NORD.muted}
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          />
         </svg>
       );
     case "move":
       return (
         <svg style={common} viewBox="0 0 24 24" fill="none">
-          <path d="M7 7h10M7 17h10" stroke={NORD.muted} strokeWidth="1.8" strokeLinecap="round" />
-          <path d="M9 9l-2-2 2-2" stroke={NORD.blue} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M15 15l2 2-2 2" stroke={NORD.blue} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          <path
+            d="M7 7h10M7 17h10"
+            stroke={NORD.muted}
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          />
+          <path
+            d="M9 9l-2-2 2-2"
+            stroke={NORD.blue}
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M15 15l2 2-2 2"
+            stroke={NORD.blue}
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       );
     default:
@@ -82,8 +155,12 @@ export default function GroundView() {
   }, []);
 
   const syncLabel = useMemo(
-    () => syncWhen.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }),
-    [syncWhen]
+    () =>
+      syncWhen.toLocaleString(undefined, {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }),
+    [syncWhen],
   );
 
   function logout() {
@@ -130,7 +207,7 @@ export default function GroundView() {
             gap: 0.5rem;
             padding: 1rem 1.5rem !important;
             border-right: none !important;
-            border-bottom: 1px solid rgba(236,239,244,0.1);
+            border-bottom: 1px solid rgba(46,52,64,0.1);
             overflow-x: auto;
           }
           .ground-sidebar button {
@@ -141,15 +218,22 @@ export default function GroundView() {
           }
         }
         .ground-nav-button:hover {
-          background: rgba(136,192,208,0.10) !important;
-          border-color: rgba(136,192,208,0.18) !important;
+          background: rgba(136,192,208,0.08) !important;
+          border-color: rgba(136,192,208,0.15) !important;
         }
         .ground-nav-button:focus-visible {
           outline: 2px solid rgba(136,192,208,0.35);
           outline-offset: 2px;
         }
       `}</style>
-      <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: NORD.bg }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          height: "100vh",
+          background: NORD.bg,
+        }}
+      >
         {/* Top Bar */}
         <div
           style={{
@@ -160,10 +244,12 @@ export default function GroundView() {
             paddingRight: "1rem",
             paddingTop: "0.75rem",
             paddingBottom: "0.75rem",
-            borderBottom: `1px solid rgba(236,239,244,0.06)`,
+            borderBottom: `1px solid rgba(46,52,64,0.08)`,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          <div
+            style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}
+          >
             <div
               style={{
                 borderRadius: "0.75rem",
@@ -176,9 +262,25 @@ export default function GroundView() {
             >
               KSC
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
-              <div style={{ fontSize: "0.875rem", fontWeight: 600, color: NORD.text }}>Operator • Ground</div>
-              <div style={{ fontSize: "0.75rem", color: NORD.muted }}>Warehouse Station</div>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.25rem",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "0.875rem",
+                  fontWeight: 600,
+                  color: NORD.text,
+                }}
+              >
+                Operator • Ground
+              </div>
+              <div style={{ fontSize: "0.75rem", color: NORD.muted }}>
+                Warehouse Station
+              </div>
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
@@ -192,10 +294,18 @@ export default function GroundView() {
                 background: NORD.panel,
                 padding: "0.4rem 0.75rem",
                 borderRadius: "0.75rem",
-                border: `1px solid rgba(216,222,233,0.10)`,
+                border: `1px solid rgba(46,52,64,0.12)`,
               }}
             >
-              <span style={{ width: "0.5rem", height: "0.5rem", borderRadius: "50%", background: NORD.green, display: "inline-block" }} />
+              <span
+                style={{
+                  width: "0.5rem",
+                  height: "0.5rem",
+                  borderRadius: "50%",
+                  background: NORD.green,
+                  display: "inline-block",
+                }}
+              />
               Sync
               <span style={{ color: NORD.subtle }}>{syncLabel}</span>
             </div>
@@ -204,7 +314,7 @@ export default function GroundView() {
               style={{
                 padding: "0.4rem 0.75rem",
                 borderRadius: "0.75rem",
-                border: "1px solid rgba(216,222,233,0.10)",
+                border: "1px solid rgba(46,52,64,0.12)",
                 background: NORD.panel,
                 color: NORD.muted,
                 cursor: "pointer",
@@ -218,7 +328,16 @@ export default function GroundView() {
         </div>
 
         {/* Main Container */}
-        <section className="ground-container" style={{ display: "grid", gridTemplateColumns: "200px 1fr", gap: 0, flex: 1, minHeight: 0 }}>
+        <section
+          className="ground-container"
+          style={{
+            display: "grid",
+            gridTemplateColumns: "200px 1fr",
+            gap: 0,
+            flex: 1,
+            minHeight: 0,
+          }}
+        >
           {/* Sidebar Navigation */}
           <aside
             className="ground-sidebar"
@@ -228,7 +347,7 @@ export default function GroundView() {
               gap: "0.5rem",
               padding: "1rem",
               background: NORD.bg,
-              borderRight: `1px solid rgba(236,239,244,0.06)`,
+              borderRight: `1px solid rgba(46,52,64,0.08)`,
               overflowY: "auto",
             }}
           >
@@ -247,8 +366,10 @@ export default function GroundView() {
                     padding: "0.75rem 1rem",
                     margin: 0,
                     border: `1px solid ${active ? "rgba(136,192,208,0.22)" : "rgba(216,222,233,0.00)"}`,
-                    background: active ? "rgba(136,192,208,0.12)" : "transparent",
-                    color: active ? NORD.text : NORD.muted,
+                    background: active
+                      ? "rgba(136,192,208,0.15)"
+                      : "rgba(46,52,64,0.05)",
+                    color: active ? NORD.text : NORD.subtle,
                     borderRadius: "1rem",
                     cursor: "pointer",
                     fontSize: "0.95rem",
@@ -265,19 +386,26 @@ export default function GroundView() {
                       width: "2.5rem",
                       height: "2.5rem",
                       borderRadius: "0.75rem",
-                      background: active ? "rgba(46,52,64,0.35)" : "rgba(216,222,233,0.06)",
-                      border: "1px solid rgba(216,222,233,0.10)",
+                      background: active
+                        ? "rgba(136,192,208,0.20)"
+                        : "rgba(46,52,64,0.08)",
+                      border: "1px solid rgba(46,52,64,0.12)",
                     }}
                   >
                     <Icon name={op.id} />
                   </span>
-                  <span style={{ fontSize: "1rem", fontWeight: 600 }}>{op.label}</span>
+                  <span style={{ fontSize: "1rem", fontWeight: 600 }}>
+                    {op.label}
+                  </span>
                 </button>
               );
             })}
 
             {/* Logout button */}
-            <div className="ground-logout" style={{ marginTop: "auto", paddingTop: "0.75rem" }}>
+            <div
+              className="ground-logout"
+              style={{ marginTop: "auto", paddingTop: "0.75rem" }}
+            >
               <button
                 onClick={logout}
                 style={{
@@ -285,7 +413,7 @@ export default function GroundView() {
                   alignItems: "center",
                   gap: "0.75rem",
                   padding: "0.65rem 0.85rem",
-                  border: "1px solid rgba(216,222,233,0.08)",
+                  border: "1px solid rgba(46,52,64,0.10)",
                   background: "transparent",
                   color: NORD.muted,
                   cursor: "pointer",

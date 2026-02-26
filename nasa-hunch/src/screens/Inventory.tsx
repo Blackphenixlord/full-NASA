@@ -47,7 +47,9 @@ export default function Inventory() {
   const [scanAction, setScanAction] = useState<Mode>("OUT");
   const [scanLoc, setScanLoc] = useState("");
   const [scanMsg, setScanMsg] = useState("");
-  const [scanPhase, setScanPhase] = useState<"idle" | "scanning" | "ok" | "unknown" | "error">("idle");
+  const [scanPhase, setScanPhase] = useState<
+    "idle" | "scanning" | "ok" | "unknown" | "error"
+  >("idle");
   const scanPhaseTimer = useRef<number | null>(null);
   const scanRef = useRef<HTMLInputElement | null>(null);
 
@@ -76,12 +78,17 @@ export default function Inventory() {
   useEffect(() => {
     if (!mapModalOpen) return;
     if (!mapLocId && defaultLocationId) setMapLocId(defaultLocationId);
-    if (!mapLocId && !defaultLocationId && locations.length > 0) setMapLocId(locations[0].id);
+    if (!mapLocId && !defaultLocationId && locations.length > 0)
+      setMapLocId(locations[0].id);
   }, [mapModalOpen, defaultLocationId, locations, mapLocId]);
 
   // initial load
   async function refreshAll() {
-    const [it, loc, st] = await Promise.all([api.items(), api.locations(), api.stocks()]);
+    const [it, loc, st] = await Promise.all([
+      api.items(),
+      api.locations(),
+      api.stocks(),
+    ]);
     setItems(it);
     setLocations(loc);
     setStocks(st);
@@ -93,7 +100,6 @@ export default function Inventory() {
 
   // convenient lookup maps
   const itemById = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
-
 
   // filtered view
   const filtered = useMemo(() => {
@@ -121,7 +127,8 @@ export default function Inventory() {
     const out: Record<string, number> = {};
     if (!activeLocId) return out;
     for (const s of stocks) {
-      if (s.locationId === activeLocId) out[s.itemId] = (out[s.itemId] || 0) + (s.qty || 0);
+      if (s.locationId === activeLocId)
+        out[s.itemId] = (out[s.itemId] || 0) + (s.qty || 0);
     }
     return out;
   }, [stocks, activeLocId]);
@@ -143,7 +150,12 @@ export default function Inventory() {
     }
   }
 
-  async function runRFIDScan(cardHex: string, mode: Mode, qty: number, locationId?: string) {
+  async function runRFIDScan(
+    cardHex: string,
+    mode: Mode,
+    qty: number,
+    locationId?: string,
+  ) {
     const cleaned = String(cardHex || "").trim();
     if (!cleaned) return;
 
@@ -167,7 +179,11 @@ export default function Inventory() {
       }
 
       await refreshAll();
-      flashPhase("ok", `✓ ${resp.itemSku ?? resp.itemId} ${mode} ×${qty}`, 1000);
+      flashPhase(
+        "ok",
+        `✓ ${resp.itemSku ?? resp.itemId} ${mode} ×${qty}`,
+        1000,
+      );
     } catch (e: any) {
       const msg = String(e?.message ?? e ?? "");
       // server uses CARD_NOT_MAPPED (404)
@@ -188,7 +204,11 @@ export default function Inventory() {
   async function submitMap() {
     try {
       if (!mapCardHex || !mapItemId || !mapLocId) return;
-      await rfidMapTag({ cardHex: mapCardHex, itemId: mapItemId, locationId: mapLocId });
+      await rfidMapTag({
+        cardHex: mapCardHex,
+        itemId: mapItemId,
+        locationId: mapLocId,
+      });
       setMapModalOpen(false);
       flashPhase("ok", "✓ Tag mapped", 1000);
     } catch (e: any) {
@@ -235,7 +255,9 @@ export default function Inventory() {
 
   return (
     <div style={{ padding: 16, color: NORD.text }}>
-      <h2 style={{ marginTop: 0, fontSize: "1.6rem", fontWeight: 600 }}>Inventory</h2>
+      <h2 style={{ marginTop: 0, fontSize: "1.6rem", fontWeight: 600 }}>
+        Inventory
+      </h2>
 
       {/* Scan bar */}
       <div
@@ -249,10 +271,10 @@ export default function Inventory() {
             scanPhase === "ok"
               ? `2px solid ${NORD.green}`
               : scanPhase === "unknown"
-              ? `2px solid ${NORD.yellow}`
-              : scanPhase === "error"
-              ? `2px solid ${NORD.red}`
-              : "1px solid rgba(216,222,233,0.12)",
+                ? `2px solid ${NORD.yellow}`
+                : scanPhase === "error"
+                  ? `2px solid ${NORD.red}`
+                  : "1px solid rgba(216,222,233,0.12)",
           background: NORD.panel2,
           marginBottom: 16,
           transition: "border 140ms ease",
@@ -316,7 +338,9 @@ export default function Inventory() {
           type="number"
           min={1}
           value={scanQty}
-          onChange={(e) => setScanQty(Math.min(100, Math.max(1, Number(e.target.value || 1))))}
+          onChange={(e) =>
+            setScanQty(Math.min(100, Math.max(1, Number(e.target.value || 1))))
+          }
           style={{
             width: 88,
             padding: "0.95rem 1rem",
@@ -335,7 +359,7 @@ export default function Inventory() {
             borderRadius: 16,
             border: "none",
             background: NORD.blue3,
-            color: NORD.text,
+            color: "rgb(236, 239, 244)",
             cursor: "pointer",
             fontWeight: 600,
             position: "relative",
@@ -401,7 +425,7 @@ export default function Inventory() {
             borderRadius: 16,
             border: "none",
             background: NORD.blue3,
-            color: NORD.text,
+            color: "rgb(236, 239, 244)",
             cursor: "pointer",
             fontWeight: 600,
             fontSize: "1rem",
@@ -412,7 +436,14 @@ export default function Inventory() {
       </div>
 
       {/* Items table */}
-      <div style={{ border: "1px solid rgba(216,222,233,0.12)", borderRadius: 16, overflow: "hidden", background: NORD.panel2 }}>
+      <div
+        style={{
+          border: "1px solid rgba(216,222,233,0.12)",
+          borderRadius: 16,
+          overflow: "hidden",
+          background: NORD.panel2,
+        }}
+      >
         <div
           style={{
             display: "grid",
@@ -449,13 +480,41 @@ export default function Inventory() {
           >
             <div style={{ opacity: 0.9, color: NORD.text }}>{it.sku}</div>
             <div>
-              <div style={{ fontWeight: 600, marginBottom: "0.25rem", color: NORD.text }}>{it.name}</div>
-              <div style={{ fontSize: "0.8rem", opacity: 0.7, color: NORD.subtle }}>{it.id}</div>
+              <div
+                style={{
+                  fontWeight: 600,
+                  marginBottom: "0.25rem",
+                  color: NORD.text,
+                }}
+              >
+                {it.name}
+              </div>
+              <div
+                style={{ fontSize: "0.8rem", opacity: 0.7, color: NORD.subtle }}
+              >
+                {it.id}
+              </div>
             </div>
-            <div style={{ opacity: 0.8, fontSize: "0.85rem", color: NORD.subtle }}>{it.description}</div>
-            <div style={{ textAlign: "right", opacity: 0.8, color: NORD.muted }}>{locByItem[it.id] ?? 0}</div>
-            <div style={{ textAlign: "right", opacity: 0.8, color: NORD.muted }}>{totalByItem[it.id] ?? 0}</div>
-            <div style={{ textAlign: "right", opacity: 0.8, color: NORD.muted }}>{it.reorderPoint ?? "-"}</div>
+            <div
+              style={{ opacity: 0.8, fontSize: "0.85rem", color: NORD.subtle }}
+            >
+              {it.description}
+            </div>
+            <div
+              style={{ textAlign: "right", opacity: 0.8, color: NORD.muted }}
+            >
+              {locByItem[it.id] ?? 0}
+            </div>
+            <div
+              style={{ textAlign: "right", opacity: 0.8, color: NORD.muted }}
+            >
+              {totalByItem[it.id] ?? 0}
+            </div>
+            <div
+              style={{ textAlign: "right", opacity: 0.8, color: NORD.muted }}
+            >
+              {it.reorderPoint ?? "-"}
+            </div>
             <div style={{ display: "flex", gap: "0.5rem" }}>
               <button
                 onClick={() => {
@@ -467,7 +526,17 @@ export default function Inventory() {
                   setFormReason("");
                   setFormLocId(defaultLocationId || locations[0]?.id || "");
                 }}
-                style={{ flex: 1, padding: "0.55rem", borderRadius: 12, border: "none", background: NORD.red, color: NORD.text, cursor: "pointer", fontWeight: 600, fontSize: "0.8rem" }}
+                style={{
+                  flex: 1,
+                  padding: "0.55rem",
+                  borderRadius: 12,
+                  border: "none",
+                  background: NORD.red,
+                  color: "rgb(236, 239, 244)",
+                  cursor: "pointer",
+                  fontWeight: 600,
+                  fontSize: "0.8rem",
+                }}
               >
                 OUT
               </button>
@@ -481,7 +550,17 @@ export default function Inventory() {
                   setFormReason("");
                   setFormLocId(defaultLocationId || locations[0]?.id || "");
                 }}
-                style={{ flex: 1, padding: "0.55rem", borderRadius: 12, border: "none", background: NORD.green, color: NORD.bg, cursor: "pointer", fontWeight: 600, fontSize: "0.8rem" }}
+                style={{
+                  flex: 1,
+                  padding: "0.55rem",
+                  borderRadius: 12,
+                  border: "none",
+                  background: NORD.green,
+                  color: NORD.bg,
+                  cursor: "pointer",
+                  fontWeight: 600,
+                  fontSize: "0.8rem",
+                }}
               >
                 IN
               </button>
@@ -514,14 +593,40 @@ export default function Inventory() {
               padding: "1.5rem",
             }}
           >
-            <h3 style={{ marginTop: 0, fontSize: "1.35rem", fontWeight: 600, color: NORD.blue, marginBottom: "1.5rem" }}>
+            <h3
+              style={{
+                marginTop: 0,
+                fontSize: "1.35rem",
+                fontWeight: 600,
+                color: NORD.blue,
+                marginBottom: "1.5rem",
+              }}
+            >
               {mode} — {itemById.get(itemId)?.sku}
             </h3>
 
             <div style={{ display: "grid", gap: "1rem" }}>
               <label style={{ display: "grid", gap: "0.5rem" }}>
-                <span style={{ fontSize: "0.9rem", fontWeight: 600, color: NORD.subtle }}>Location</span>
-                <select value={formLocId} onChange={(e) => setFormLocId(e.target.value)} style={{ padding: "0.85rem 1rem", borderRadius: 14, border: "1px solid rgba(216,222,233,0.12)", background: NORD.panel2, color: NORD.text }}>
+                <span
+                  style={{
+                    fontSize: "0.9rem",
+                    fontWeight: 600,
+                    color: NORD.subtle,
+                  }}
+                >
+                  Location
+                </span>
+                <select
+                  value={formLocId}
+                  onChange={(e) => setFormLocId(e.target.value)}
+                  style={{
+                    padding: "0.85rem 1rem",
+                    borderRadius: 14,
+                    border: "1px solid rgba(216,222,233,0.12)",
+                    background: NORD.panel2,
+                    color: NORD.text,
+                  }}
+                >
                   {locations.map((l) => (
                     <option key={l.id} value={l.id}>
                       {l.code} — {l.description}
@@ -531,31 +636,128 @@ export default function Inventory() {
               </label>
 
               <label style={{ display: "grid", gap: "0.5rem" }}>
-                <span style={{ fontSize: "0.9rem", fontWeight: 600, color: NORD.subtle }}>Qty</span>
+                <span
+                  style={{
+                    fontSize: "0.9rem",
+                    fontWeight: 600,
+                    color: NORD.subtle,
+                  }}
+                >
+                  Qty
+                </span>
                 <input
                   type="number"
                   min={1}
                   value={formQty}
-                  onChange={(e) => setFormQty(Math.min(100, Math.max(1, Number(e.target.value || 1))))}
-                  style={{ padding: "0.85rem 1rem", borderRadius: 14, border: "1px solid rgba(216,222,233,0.12)", background: NORD.panel2, color: NORD.text }}
+                  onChange={(e) =>
+                    setFormQty(
+                      Math.min(100, Math.max(1, Number(e.target.value || 1))),
+                    )
+                  }
+                  style={{
+                    padding: "0.85rem 1rem",
+                    borderRadius: 14,
+                    border: "1px solid rgba(216,222,233,0.12)",
+                    background: NORD.panel2,
+                    color: NORD.text,
+                  }}
                 />
               </label>
 
               <label style={{ display: "grid", gap: "0.5rem" }}>
-                <span style={{ fontSize: "0.9rem", fontWeight: 600, color: NORD.subtle }}>Work Order (optional)</span>
-                <input value={formWO} onChange={(e) => setFormWO(e.target.value)} style={{ padding: "0.85rem 1rem", borderRadius: 14, border: "1px solid rgba(216,222,233,0.12)", background: NORD.panel2, color: NORD.text }} />
+                <span
+                  style={{
+                    fontSize: "0.9rem",
+                    fontWeight: 600,
+                    color: NORD.subtle,
+                  }}
+                >
+                  Work Order (optional)
+                </span>
+                <input
+                  value={formWO}
+                  onChange={(e) => setFormWO(e.target.value)}
+                  style={{
+                    padding: "0.85rem 1rem",
+                    borderRadius: 14,
+                    border: "1px solid rgba(216,222,233,0.12)",
+                    background: NORD.panel2,
+                    color: NORD.text,
+                  }}
+                />
               </label>
 
               <label style={{ display: "grid", gap: "0.5rem" }}>
-                <span style={{ fontSize: "0.9rem", fontWeight: 600, color: NORD.subtle }}>Reason (optional)</span>
-                <input value={formReason} onChange={(e) => setFormReason(e.target.value)} style={{ padding: "0.85rem 1rem", borderRadius: 14, border: "1px solid rgba(216,222,233,0.12)", background: NORD.panel2, color: NORD.text }} />
+                <span
+                  style={{
+                    fontSize: "0.9rem",
+                    fontWeight: 600,
+                    color: NORD.subtle,
+                  }}
+                >
+                  Reason (optional)
+                </span>
+                <input
+                  value={formReason}
+                  onChange={(e) => setFormReason(e.target.value)}
+                  style={{
+                    padding: "0.85rem 1rem",
+                    borderRadius: 14,
+                    border: "1px solid rgba(216,222,233,0.12)",
+                    background: NORD.panel2,
+                    color: NORD.text,
+                  }}
+                />
               </label>
 
-              {errMsg && <div style={{ color: NORD.red, fontSize: "0.9rem", fontWeight: 500 }}>{errMsg}</div>}
+              {errMsg && (
+                <div
+                  style={{
+                    color: NORD.red,
+                    fontSize: "0.9rem",
+                    fontWeight: 500,
+                  }}
+                >
+                  {errMsg}
+                </div>
+              )}
 
-              <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", marginTop: "1.5rem" }}>
-                <button onClick={() => setOpen(false)} style={{ padding: "0.85rem 1.5rem", borderRadius: 14, border: "1px solid rgba(216,222,233,0.16)", background: "transparent", color: NORD.text, cursor: "pointer", fontWeight: 600 }}>Cancel</button>
-                <button onClick={submit} style={{ padding: "0.85rem 1.5rem", borderRadius: 14, border: "none", background: NORD.blue3, color: NORD.text, cursor: "pointer", fontWeight: 600 }}>Submit</button>
+              <div
+                style={{
+                  display: "flex",
+                  gap: "0.5rem",
+                  justifyContent: "flex-end",
+                  marginTop: "1.5rem",
+                }}
+              >
+                <button
+                  onClick={() => setOpen(false)}
+                  style={{
+                    padding: "0.85rem 1.5rem",
+                    borderRadius: 14,
+                    border: "1px solid rgba(216,222,233,0.16)",
+                    background: "transparent",
+                    color: NORD.text,
+                    cursor: "pointer",
+                    fontWeight: 600,
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={submit}
+                  style={{
+                    padding: "0.85rem 1.5rem",
+                    borderRadius: 14,
+                    border: "none",
+                    background: NORD.blue3,
+                    color: "rgb(236, 239, 244)",
+                    cursor: "pointer",
+                    fontWeight: 600,
+                  }}
+                >
+                  Submit
+                </button>
               </div>
             </div>
           </div>
@@ -586,15 +788,53 @@ export default function Inventory() {
               padding: "1.5rem",
             }}
           >
-            <h3 style={{ marginTop: 0, fontSize: "1.35rem", fontWeight: 600, color: NORD.blue, marginBottom: "1.5rem" }}>Map RFID Tag</h3>
-            <div style={{ opacity: 0.75, marginBottom: "1rem", fontSize: "0.95rem", color: NORD.muted }}>
-              Tag: <span style={{ fontFamily: "monospace", color: NORD.blue }}>{mapCardHex}</span>
+            <h3
+              style={{
+                marginTop: 0,
+                fontSize: "1.35rem",
+                fontWeight: 600,
+                color: NORD.blue,
+                marginBottom: "1.5rem",
+              }}
+            >
+              Map RFID Tag
+            </h3>
+            <div
+              style={{
+                opacity: 0.75,
+                marginBottom: "1rem",
+                fontSize: "0.95rem",
+                color: NORD.muted,
+              }}
+            >
+              Tag:{" "}
+              <span style={{ fontFamily: "monospace", color: NORD.blue }}>
+                {mapCardHex}
+              </span>
             </div>
 
             <div style={{ display: "grid", gap: "1rem" }}>
               <label style={{ display: "grid", gap: "0.5rem" }}>
-                <span style={{ fontSize: "0.9rem", fontWeight: 600, color: NORD.subtle }}>Item</span>
-                <select value={mapItemId} onChange={(e) => setMapItemId(e.target.value)} style={{ padding: "0.85rem 1rem", borderRadius: 14, border: "1px solid rgba(216,222,233,0.12)", background: NORD.panel2, color: NORD.text }}>
+                <span
+                  style={{
+                    fontSize: "0.9rem",
+                    fontWeight: 600,
+                    color: NORD.subtle,
+                  }}
+                >
+                  Item
+                </span>
+                <select
+                  value={mapItemId}
+                  onChange={(e) => setMapItemId(e.target.value)}
+                  style={{
+                    padding: "0.85rem 1rem",
+                    borderRadius: 14,
+                    border: "1px solid rgba(216,222,233,0.12)",
+                    background: NORD.panel2,
+                    color: NORD.text,
+                  }}
+                >
                   <option value="">(choose)</option>
                   {items.map((it) => (
                     <option key={it.id} value={it.id}>
@@ -605,8 +845,26 @@ export default function Inventory() {
               </label>
 
               <label style={{ display: "grid", gap: "0.5rem" }}>
-                <span style={{ fontSize: "0.9rem", fontWeight: 600, color: NORD.subtle }}>Location</span>
-                <select value={mapLocId} onChange={(e) => setMapLocId(e.target.value)} style={{ padding: "0.85rem 1rem", borderRadius: 14, border: "1px solid rgba(216,222,233,0.12)", background: NORD.panel2, color: NORD.text }}>
+                <span
+                  style={{
+                    fontSize: "0.9rem",
+                    fontWeight: 600,
+                    color: NORD.subtle,
+                  }}
+                >
+                  Location
+                </span>
+                <select
+                  value={mapLocId}
+                  onChange={(e) => setMapLocId(e.target.value)}
+                  style={{
+                    padding: "0.85rem 1rem",
+                    borderRadius: 14,
+                    border: "1px solid rgba(216,222,233,0.12)",
+                    background: NORD.panel2,
+                    color: NORD.text,
+                  }}
+                >
                   {locations.map((l) => (
                     <option key={l.id} value={l.id}>
                       {l.code} — {l.description}
@@ -615,9 +873,43 @@ export default function Inventory() {
                 </select>
               </label>
 
-              <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", marginTop: "1.5rem" }}>
-                <button onClick={() => setMapModalOpen(false)} style={{ padding: "0.85rem 1.5rem", borderRadius: 14, border: "1px solid rgba(216,222,233,0.16)", background: "transparent", color: NORD.text, cursor: "pointer", fontWeight: 600 }}>Cancel</button>
-                <button disabled={!mapItemId || !mapLocId} onClick={submitMap} style={{ padding: "0.85rem 1.5rem", borderRadius: 14, border: "none", background: mapItemId && mapLocId ? NORD.blue3 : "#6b7280", color: NORD.text, cursor: mapItemId && mapLocId ? "pointer" : "not-allowed", fontWeight: 600, opacity: mapItemId && mapLocId ? 1 : 0.5 }}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: "0.5rem",
+                  justifyContent: "flex-end",
+                  marginTop: "1.5rem",
+                }}
+              >
+                <button
+                  onClick={() => setMapModalOpen(false)}
+                  style={{
+                    padding: "0.85rem 1.5rem",
+                    borderRadius: 14,
+                    border: "1px solid rgba(216,222,233,0.16)",
+                    background: "transparent",
+                    color: NORD.text,
+                    cursor: "pointer",
+                    fontWeight: 600,
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  disabled={!mapItemId || !mapLocId}
+                  onClick={submitMap}
+                  style={{
+                    padding: "0.85rem 1.5rem",
+                    borderRadius: 14,
+                    border: "none",
+                    background: mapItemId && mapLocId ? NORD.blue3 : "#6b7280",
+                    color:
+                      mapItemId && mapLocId ? "rgb(236, 239, 244)" : NORD.text,
+                    cursor: mapItemId && mapLocId ? "pointer" : "not-allowed",
+                    fontWeight: 600,
+                    opacity: mapItemId && mapLocId ? 1 : 0.5,
+                  }}
+                >
                   Save mapping
                 </button>
               </div>

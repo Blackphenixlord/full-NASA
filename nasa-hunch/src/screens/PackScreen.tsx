@@ -10,17 +10,17 @@ interface Container {
 }
 
 const NORD = {
-  bg: "#2E3440",
-  panel: "#3B4252",
-  panel2: "#434C5E",
-  panel3: "#4C566A",
-  text: "#ECEFF4",
-  muted: "#D8DEE9",
-  subtle: "#A3AAB7",
-  blue: "#88C0D0",
+  bg: "#ECEFF4", // Snow Storm - lightest
+  panel: "#E5E9F0", // Snow Storm - light
+  panel2: "#D8DEE9", // Snow Storm - medium
+  panel3: "#C8D0DA", // Custom lighter shade
+  text: "#2E3440", // Polar Night - darkest (for contrast on light bg)
+  muted: "#4C566A", // Polar Night - lighter
+  subtle: "#5E81AC", // Frost - for subtle text
+  blue: "rgb(80, 162, 185)", // Updated light blue
   blue2: "#81A1C1",
   blue3: "#5E81AC",
-  green: "#A3BE8C",
+  green: "rgb(110, 144, 81)", // Updated green
   yellow: "#EBCB8B",
   red: "#BF616A",
 };
@@ -43,10 +43,30 @@ function Button({
   className?: string;
 }) {
   const styles = {
-    primary: { bg: NORD.blue3, fg: NORD.text, bd: "transparent", hover: NORD.blue2 },
-    secondary: { bg: NORD.blue2, fg: NORD.text, bd: "transparent", hover: NORD.blue },
-    ghost: { bg: "transparent", fg: NORD.muted, bd: "rgba(76,86,106,0.45)", hover: "rgba(76,86,106,0.22)" },
-    danger: { bg: NORD.red, fg: NORD.text, bd: "transparent", hover: "rgba(191,97,106,0.85)" },
+    primary: {
+      bg: NORD.blue3,
+      fg: "rgb(236, 239, 244)",
+      bd: "transparent",
+      hover: NORD.blue2,
+    },
+    secondary: {
+      bg: NORD.blue2,
+      fg: "rgb(236, 239, 244)",
+      bd: "transparent",
+      hover: NORD.blue,
+    },
+    ghost: {
+      bg: "transparent",
+      fg: NORD.muted,
+      bd: "rgba(76,86,106,0.45)",
+      hover: "rgba(76,86,106,0.22)",
+    },
+    danger: {
+      bg: NORD.red,
+      fg: "rgb(236, 239, 244)",
+      bd: "transparent",
+      hover: "rgba(191,97,106,0.85)",
+    },
   } as const;
   const s = styles[variant] ?? styles.primary;
 
@@ -89,10 +109,13 @@ function Card({
 }) {
   return (
     <div
-      className={cn("rounded-2xl p-5 shadow-sm flex flex-col animate-fade-up", className)}
+      className={cn(
+        "rounded-2xl p-5 shadow-sm flex flex-col animate-fade-up",
+        className,
+      )}
       style={{
-        background: NORD.panel,
-        border: `1px solid rgba(76,86,106,0.35)`
+        background: "rgba(46,52,64,0.05)",
+        border: `1px solid rgba(76,86,106,0.35)`,
       }}
     >
       {!hideHeader ? (
@@ -100,7 +123,10 @@ function Card({
           {title ? (
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="text-base font-semibold" style={{ color: NORD.text }}>
+                <div
+                  className="text-base font-semibold"
+                  style={{ color: NORD.text }}
+                >
                   {title}
                 </div>
               </div>
@@ -135,9 +161,9 @@ function Input({
       placeholder={placeholder}
       className="w-full rounded-xl px-4 py-3 text-base outline-none"
       style={{
-        background: NORD.panel2,
+        background: "rgba(46,52,64,0.08)",
         color: NORD.text,
-        border: `1px solid rgba(76,86,106,0.45)`
+        border: `1px solid rgba(76,86,106,0.45)`,
       }}
     />
   );
@@ -146,7 +172,9 @@ function Input({
 export default function PackScreen() {
   const [containers, setContainers] = useState<Container[]>([]);
 
-  const [selectedOutside, setSelectedOutside] = useState<Container | null>(null);
+  const [selectedOutside, setSelectedOutside] = useState<Container | null>(
+    null,
+  );
   const [selectedInside, setSelectedInside] = useState<Container | null>(null);
   const [outsideInput, setOutsideInput] = useState("");
   const [insideInput, setInsideInput] = useState("");
@@ -175,8 +203,15 @@ export default function PackScreen() {
     const needle = normalizeCode(value);
     if (!needle) return null;
     return (
-      containers.find((c) => normalizeCode(c.code) === needle || normalizeCode(c.id) === needle) ||
-      containers.find((c) => normalizeCode(c.code).includes(needle) || normalizeCode(c.id).includes(needle)) ||
+      containers.find(
+        (c) =>
+          normalizeCode(c.code) === needle || normalizeCode(c.id) === needle,
+      ) ||
+      containers.find(
+        (c) =>
+          normalizeCode(c.code).includes(needle) ||
+          normalizeCode(c.id).includes(needle),
+      ) ||
       null
     );
   }
@@ -186,14 +221,24 @@ export default function PackScreen() {
     if (existing) return existing;
     const id = value.trim();
     if (!id) return null;
-    const created: Container = { id, code: id, capacity: 10, used: 0, items: [] };
-    setContainers((prev) => (prev.some((c) => c.id === created.id) ? prev : [...prev, created]));
+    const created: Container = {
+      id,
+      code: id,
+      capacity: 10,
+      used: 0,
+      items: [],
+    };
+    setContainers((prev) =>
+      prev.some((c) => c.id === created.id) ? prev : [...prev, created],
+    );
     return created;
   }
 
   const liveOutside = useMemo(() => {
     if (!selectedOutside) return null;
-    return containers.find((c) => c.id === selectedOutside.id) ?? selectedOutside;
+    return (
+      containers.find((c) => c.id === selectedOutside.id) ?? selectedOutside
+    );
   }, [containers, selectedOutside]);
 
   const liveInside = useMemo(() => {
@@ -201,7 +246,9 @@ export default function PackScreen() {
     return containers.find((c) => c.id === selectedInside.id) ?? selectedInside;
   }, [containers, selectedInside]);
 
-  const roomLeft = liveOutside ? Math.max(0, liveOutside.capacity - liveOutside.items.length) : 0;
+  const roomLeft = liveOutside
+    ? Math.max(0, liveOutside.capacity - liveOutside.items.length)
+    : 0;
   const insideSize = liveInside ? liveInside.items.length : 0;
 
   function handleOutsideScan() {
@@ -253,7 +300,9 @@ export default function PackScreen() {
             if (c.id !== selectedOutside.id) return c;
             const items = [...c.items];
             const base = selectedInside.id;
-            const startIdx = items.filter((id) => id.startsWith(`${base}#`)).length;
+            const startIdx = items.filter((id) =>
+              id.startsWith(`${base}#`),
+            ).length;
             for (let i = 0; i < qty; i += 1) {
               const suffix = startIdx + i + 1;
               const token = qty === 1 ? base : `${base}#${suffix}`;
@@ -266,12 +315,18 @@ export default function PackScreen() {
           }
           return next;
         });
-        setPackSuccess(`Packed ${selectedInside.code} ×${qty} into ${selectedOutside.code}`);
+        setPackSuccess(
+          `Packed ${selectedInside.code} ×${qty} into ${selectedOutside.code}`,
+        );
       };
       fetch(apiUrl("/containers/pack"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ outsideId: selectedOutside.id, insideId: selectedInside.id, qty }),
+        body: JSON.stringify({
+          outsideId: selectedOutside.id,
+          insideId: selectedInside.id,
+          qty,
+        }),
       })
         .then((r) => {
           if (!r.ok) throw new Error("PACK_FAILED");
@@ -299,37 +354,75 @@ export default function PackScreen() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "1rem", padding: "1rem" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem" }}>
-        <div style={{ fontSize: "1.15rem", fontWeight: 600, color: NORD.text }}>Pack</div>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "1rem",
+        padding: "1rem",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "1rem",
+        }}
+      >
+        <div style={{ fontSize: "1.15rem", fontWeight: 600, color: NORD.text }}>
+          Pack
+        </div>
       </div>
       {packError ? (
         <div
           className="rounded-2xl px-4 py-3"
-          style={{ background: "rgba(191,97,106,0.18)", border: "1px solid rgba(191,97,106,0.45)" }}
+          style={{
+            background: "rgba(191,97,106,0.18)",
+            border: "1px solid rgba(191,97,106,0.45)",
+          }}
         >
-          <div className="text-sm" style={{ color: NORD.text }}>{packError}</div>
+          <div className="text-sm" style={{ color: NORD.text }}>
+            {packError}
+          </div>
         </div>
       ) : null}
       {packSuccess ? (
         <div
           className="rounded-2xl px-4 py-3"
-          style={{ background: "rgba(163,190,140,0.18)", border: "1px solid rgba(163,190,140,0.45)" }}
+          style={{
+            background: "rgba(163,190,140,0.18)",
+            border: "1px solid rgba(163,190,140,0.45)",
+          }}
         >
-          <div className="text-sm" style={{ color: NORD.text }}>{packSuccess}</div>
+          <div className="text-sm" style={{ color: NORD.text }}>
+            {packSuccess}
+          </div>
         </div>
       ) : null}
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(12, minmax(0, 1fr))", gap: "1rem" }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(12, minmax(0, 1fr))",
+          gap: "1rem",
+        }}
+      >
         <div style={{ gridColumn: "span 12" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(12, minmax(0, 1fr))", gap: "1rem" }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(12, minmax(0, 1fr))",
+              gap: "1rem",
+            }}
+          >
             <div style={{ gridColumn: "span 12" }}>
               <Card title="Outside">
                 <div
                   style={{
                     borderRadius: "1rem",
                     padding: "1rem",
-                    background: NORD.panel2,
+                    background: "rgba(46,52,64,0.08)",
                     border: "1px solid rgba(216,222,233,0.10)",
                     display: "flex",
                     flexDirection: "column",
@@ -340,8 +433,12 @@ export default function PackScreen() {
                     style={{
                       borderRadius: "1rem",
                       padding: "1rem",
-                      background: selectedOutside ? "rgba(136,192,208,0.12)" : "rgba(46,52,64,0.35)",
-                      border: selectedOutside ? "1px solid rgba(136,192,208,0.35)" : "1px solid rgba(236,239,244,0.06)",
+                      background: selectedOutside
+                        ? "rgba(136,192,208,0.12)"
+                        : "rgba(216,222,233,0.35)",
+                      border: selectedOutside
+                        ? "1px solid rgba(136,192,208,0.35)"
+                        : "1px solid rgba(236,239,244,0.06)",
                       color: selectedOutside ? NORD.text : NORD.subtle,
                       textAlign: "center",
                       minHeight: "84px",
@@ -374,7 +471,7 @@ export default function PackScreen() {
                   style={{
                     borderRadius: "1rem",
                     padding: "1rem",
-                    background: NORD.panel2,
+                    background: "rgba(46,52,64,0.08)",
                     border: "1px solid rgba(216,222,233,0.10)",
                     display: "flex",
                     flexDirection: "column",
@@ -385,8 +482,12 @@ export default function PackScreen() {
                     style={{
                       borderRadius: "1rem",
                       padding: "1rem",
-                      background: selectedInside ? "rgba(136,192,208,0.12)" : "rgba(46,52,64,0.35)",
-                      border: selectedInside ? "1px solid rgba(136,192,208,0.35)" : "1px solid rgba(236,239,244,0.06)",
+                      background: selectedInside
+                        ? "rgba(136,192,208,0.12)"
+                        : "rgba(216,222,233,0.35)",
+                      border: selectedInside
+                        ? "1px solid rgba(136,192,208,0.35)"
+                        : "1px solid rgba(236,239,244,0.06)",
                       color: selectedInside ? NORD.text : NORD.subtle,
                       textAlign: "center",
                       minHeight: "84px",
@@ -409,20 +510,37 @@ export default function PackScreen() {
                     />
                     <Button onClick={handleInsideScan}>Scan</Button>
                   </div>
-                  <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
-                    <div style={{ fontSize: "0.85rem", color: NORD.subtle, minWidth: "78px" }}>Amount</div>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "0.75rem",
+                      alignItems: "center",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: "0.85rem",
+                        color: NORD.subtle,
+                        minWidth: "78px",
+                      }}
+                    >
+                      Amount
+                    </div>
                     <input
                       type="number"
                       min={1}
                       max={100}
                       value={packAmount}
                       onChange={(e) => {
-                        const next = Math.min(100, Math.max(1, Number(e.target.value || 1)));
+                        const next = Math.min(
+                          100,
+                          Math.max(1, Number(e.target.value || 1)),
+                        );
                         setPackAmount(next);
                       }}
                       className="w-full rounded-xl px-4 py-2 text-base outline-none"
                       style={{
-                        background: NORD.panel2,
+                        background: "rgba(46,52,64,0.08)",
                         color: NORD.text,
                         border: `1px solid rgba(76,86,106,0.45)`,
                       }}
@@ -436,32 +554,115 @@ export default function PackScreen() {
       </div>
 
       <Card title="Verify">
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "0.75rem" }}>
-          <div style={{ borderRadius: "1rem", padding: "1rem", background: NORD.panel2, border: "1px solid rgba(216,222,233,0.10)" }}>
-            <div style={{ fontSize: "0.85rem", color: NORD.subtle }}>Outside contents</div>
-            <div style={{ marginTop: "0.5rem", fontSize: "2rem", fontWeight: 700, color: NORD.text }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: "0.75rem",
+          }}
+        >
+          <div
+            style={{
+              borderRadius: "1rem",
+              padding: "1rem",
+              background: "rgba(46,52,64,0.08)",
+              border: "1px solid rgba(216,222,233,0.10)",
+            }}
+          >
+            <div style={{ fontSize: "0.85rem", color: NORD.subtle }}>
+              Outside contents
+            </div>
+            <div
+              style={{
+                marginTop: "0.5rem",
+                fontSize: "2rem",
+                fontWeight: 700,
+                color: NORD.text,
+              }}
+            >
               {liveOutside ? liveOutside.items.length : 0}
             </div>
           </div>
-          <div style={{ borderRadius: "1rem", padding: "1rem", background: NORD.panel2, border: "1px solid rgba(216,222,233,0.10)" }}>
-            <div style={{ fontSize: "0.85rem", color: NORD.subtle }}>Inside contents</div>
-            <div style={{ marginTop: "0.5rem", fontSize: "2rem", fontWeight: 700, color: NORD.text }}>
+          <div
+            style={{
+              borderRadius: "1rem",
+              padding: "1rem",
+              background: "rgba(46,52,64,0.08)",
+              border: "1px solid rgba(216,222,233,0.10)",
+            }}
+          >
+            <div style={{ fontSize: "0.85rem", color: NORD.subtle }}>
+              Inside contents
+            </div>
+            <div
+              style={{
+                marginTop: "0.5rem",
+                fontSize: "2rem",
+                fontWeight: 700,
+                color: NORD.text,
+              }}
+            >
               {liveInside ? liveInside.items.length : 0}
             </div>
           </div>
-          <div style={{ borderRadius: "1rem", padding: "1rem", background: NORD.panel2, border: "1px solid rgba(216,222,233,0.10)" }}>
-            <div style={{ fontSize: "0.85rem", color: NORD.subtle }}>Room left</div>
-            <div style={{ marginTop: "0.5rem", fontSize: "1.5rem", fontWeight: 600, color: NORD.text }}>{roomLeft}</div>
+          <div
+            style={{
+              borderRadius: "1rem",
+              padding: "1rem",
+              background: "rgba(46,52,64,0.08)",
+              border: "1px solid rgba(216,222,233,0.10)",
+            }}
+          >
+            <div style={{ fontSize: "0.85rem", color: NORD.subtle }}>
+              Room left
+            </div>
+            <div
+              style={{
+                marginTop: "0.5rem",
+                fontSize: "1.5rem",
+                fontWeight: 600,
+                color: NORD.text,
+              }}
+            >
+              {roomLeft}
+            </div>
           </div>
-          <div style={{ borderRadius: "1rem", padding: "1rem", background: NORD.panel2, border: "1px solid rgba(216,222,233,0.10)" }}>
-            <div style={{ fontSize: "0.85rem", color: NORD.subtle }}>Inside size</div>
-            <div style={{ marginTop: "0.5rem", fontSize: "1.5rem", fontWeight: 600, color: NORD.text }}>{insideSize}</div>
+          <div
+            style={{
+              borderRadius: "1rem",
+              padding: "1rem",
+              background: "rgba(46,52,64,0.08)",
+              border: "1px solid rgba(216,222,233,0.10)",
+            }}
+          >
+            <div style={{ fontSize: "0.85rem", color: NORD.subtle }}>
+              Inside size
+            </div>
+            <div
+              style={{
+                marginTop: "0.5rem",
+                fontSize: "1.5rem",
+                fontWeight: 600,
+                color: NORD.text,
+              }}
+            >
+              {insideSize}
+            </div>
           </div>
         </div>
       </Card>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
-        <Button onClick={handlePack} disabled={!selectedOutside || !selectedInside}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: "0.75rem",
+        }}
+      >
+        <Button
+          onClick={handlePack}
+          disabled={!selectedOutside || !selectedInside}
+        >
           Pack
         </Button>
         <Button variant="danger" onClick={handleClearAll}>

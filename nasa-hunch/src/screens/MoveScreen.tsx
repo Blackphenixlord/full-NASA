@@ -10,17 +10,17 @@ interface Move {
 }
 
 const NORD = {
-  bg: "#2E3440",
-  panel: "#3B4252",
-  panel2: "#434C5E",
-  panel3: "#4C566A",
-  text: "#ECEFF4",
-  muted: "#D8DEE9",
-  subtle: "#A3ABB9",
-  blue: "#88C0D0",
+  bg: "#ECEFF4", // Snow Storm - lightest
+  panel: "#E5E9F0", // Snow Storm - light
+  panel2: "#D8DEE9", // Snow Storm - medium
+  panel3: "#C8D0DA", // Custom lighter shade
+  text: "#2E3440", // Polar Night - darkest (for contrast on light bg)
+  muted: "#4C566A", // Polar Night - lighter
+  subtle: "#5E81AC", // Frost - for subtle text
+  blue: "rgb(80, 162, 185)", // Updated light blue
   blue2: "#81A1C1",
   blue3: "#5E81AC",
-  green: "#A3BE8C",
+  green: "rgb(110, 144, 81)", // Updated green
   yellow: "#EBCB8B",
   red: "#BF616A",
   purple: "#B48EAD",
@@ -40,10 +40,30 @@ function Button({
   className?: string;
 }) {
   const styles = {
-    primary: { bg: NORD.blue3, fg: NORD.text, bd: "transparent", hover: NORD.blue2 },
-    secondary: { bg: NORD.blue2, fg: NORD.text, bd: "transparent", hover: NORD.blue },
-    ghost: { bg: "transparent", fg: NORD.muted, bd: "rgba(76,86,106,0.45)", hover: "rgba(76,86,106,0.22)" },
-    danger: { bg: NORD.red, fg: NORD.text, bd: "transparent", hover: "rgba(191,97,106,0.85)" },
+    primary: {
+      bg: NORD.blue3,
+      fg: "rgb(236, 239, 244)",
+      bd: "transparent",
+      hover: NORD.blue2,
+    },
+    secondary: {
+      bg: NORD.blue2,
+      fg: "rgb(236, 239, 244)",
+      bd: "transparent",
+      hover: NORD.blue,
+    },
+    ghost: {
+      bg: "transparent",
+      fg: NORD.muted,
+      bd: "rgba(76,86,106,0.45)",
+      hover: "rgba(76,86,106,0.22)",
+    },
+    danger: {
+      bg: NORD.red,
+      fg: "rgb(236, 239, 244)",
+      bd: "transparent",
+      hover: "rgba(191,97,106,0.85)",
+    },
   } as const;
   const s = styles[variant] ?? styles.primary;
 
@@ -84,11 +104,15 @@ function Card({
     <div
       className={`rounded-2xl p-5 shadow-sm animate-fade-up ${className ?? ""}`}
       style={{
-        background: NORD.panel,
-        border: `1px solid rgba(76,86,106,0.35)`
+        background: "rgba(46,52,64,0.05)",
+        border: `1px solid rgba(76,86,106,0.35)`,
       }}
     >
-      {title ? <div className="text-base font-semibold" style={{ color: NORD.text }}>{title}</div> : null}
+      {title ? (
+        <div className="text-base font-semibold" style={{ color: NORD.text }}>
+          {title}
+        </div>
+      ) : null}
       <div className={title ? "mt-4" : ""}>{children}</div>
     </div>
   );
@@ -113,9 +137,9 @@ function Input({
       placeholder={placeholder}
       className="w-full rounded-2xl px-4 py-3 text-lg outline-none"
       style={{
-        background: NORD.panel2,
+        background: "rgba(46,52,64,0.08)",
         color: NORD.text,
-        border: `1px solid rgba(76,86,106,0.45)`
+        border: `1px solid rgba(76,86,106,0.45)`,
       }}
     />
   );
@@ -136,15 +160,19 @@ function Select({
       onChange={(e) => onChange(e.target.value)}
       className="rounded-2xl px-4 py-2.5 text-base outline-none"
       style={{
-        background: NORD.panel3,
+        background: "rgba(46,52,64,0.10)",
         color: NORD.text,
         border: `1px solid rgba(136,192,208,0.35)`,
-        boxShadow: "inset 0 0 0 1px rgba(46,52,64,0.35)",
+        boxShadow: "inset 0 0 0 1px rgba(200,208,218,0.35)",
         minWidth: "220px",
       }}
     >
       {options.map((o) => (
-        <option key={o} value={o} style={{ background: NORD.panel3, color: NORD.text }}>
+        <option
+          key={o}
+          value={o}
+          style={{ background: "rgba(46,52,64,0.10)", color: NORD.text }}
+        >
           {o}
         </option>
       ))}
@@ -212,31 +240,65 @@ export default function MoveScreen() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "1rem", padding: "1rem" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem" }}>
-        <div style={{ fontSize: "1.15rem", fontWeight: 600, color: NORD.text }}>Move</div>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "1rem",
+        padding: "1rem",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "1rem",
+        }}
+      >
+        <div style={{ fontSize: "1.15rem", fontWeight: 600, color: NORD.text }}>
+          Move
+        </div>
         <Button variant="ghost" onClick={() => setDraftOpen(true)}>
           Open Draft
         </Button>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(12, minmax(0, 1fr))", gap: "1rem" }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(12, minmax(0, 1fr))",
+          gap: "1rem",
+        }}
+      >
         <div style={{ gridColumn: "span 12" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(12, minmax(0, 1fr))", gap: "1rem" }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(12, minmax(0, 1fr))",
+              gap: "1rem",
+            }}
+          >
             <div style={{ gridColumn: "span 12" }}>
               <Card title="From">
                 <div
                   style={{
                     borderRadius: "1rem",
                     padding: "1rem",
-                    background: `linear-gradient(135deg, rgba(136,192,208,0.12), rgba(0,0,0,0)), ${NORD.panel2}`,
+                    background: `linear-gradient(135deg, rgba(136,192,208,0.12), rgba(0,0,0,0)), rgba(46,52,64,0.08)`,
                     border: "1px solid rgba(136,192,208,0.28)",
                     display: "flex",
                     flexDirection: "column",
                     gap: "0.75rem",
                   }}
                 >
-                  <div style={{ fontSize: "1.2rem", fontWeight: 600, color: NORD.text }}>
+                  <div
+                    style={{
+                      fontSize: "1.2rem",
+                      fontWeight: 600,
+                      color: NORD.text,
+                    }}
+                  >
                     {move.fromContainer ? move.fromContainer : "None selected"}
                   </div>
                   <div style={{ display: "flex", gap: "0.75rem" }}>
@@ -249,7 +311,10 @@ export default function MoveScreen() {
                       }}
                     />
                     <Button onClick={handleFromScan}>Scan</Button>
-                    <Button variant="ghost" onClick={() => setMove({ ...move, fromContainer: null })}>
+                    <Button
+                      variant="ghost"
+                      onClick={() => setMove({ ...move, fromContainer: null })}
+                    >
                       Clear
                     </Button>
                   </div>
@@ -263,14 +328,20 @@ export default function MoveScreen() {
                   style={{
                     borderRadius: "1rem",
                     padding: "1rem",
-                    background: `linear-gradient(135deg, rgba(163,190,140,0.12), rgba(0,0,0,0)), ${NORD.panel2}`,
+                    background: `linear-gradient(135deg, rgba(163,190,140,0.12), rgba(0,0,0,0)), rgba(46,52,64,0.08)`,
                     border: "1px solid rgba(163,190,140,0.28)",
                     display: "flex",
                     flexDirection: "column",
                     gap: "0.75rem",
                   }}
                 >
-                  <div style={{ fontSize: "1.2rem", fontWeight: 600, color: NORD.text }}>
+                  <div
+                    style={{
+                      fontSize: "1.2rem",
+                      fontWeight: 600,
+                      color: NORD.text,
+                    }}
+                  >
                     {move.toContainer ? move.toContainer : "None selected"}
                   </div>
                   <div style={{ display: "flex", gap: "0.75rem" }}>
@@ -283,7 +354,10 @@ export default function MoveScreen() {
                       }}
                     />
                     <Button onClick={handleToScan}>Scan</Button>
-                    <Button variant="ghost" onClick={() => setMove({ ...move, toContainer: null })}>
+                    <Button
+                      variant="ghost"
+                      onClick={() => setMove({ ...move, toContainer: null })}
+                    >
                       Clear
                     </Button>
                   </div>
@@ -299,23 +373,53 @@ export default function MoveScreen() {
           style={{
             borderRadius: "1rem",
             padding: "1rem",
-            background: `linear-gradient(135deg, rgba(180,142,173,0.12), rgba(0,0,0,0)), ${NORD.panel2}`,
+            background: `linear-gradient(135deg, rgba(180,142,173,0.12), rgba(0,0,0,0)), rgba(46,52,64,0.08)`,
             border: "1px solid rgba(180,142,173,0.26)",
             display: "flex",
             flexDirection: "column",
             gap: "1rem",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-              <div style={{ fontSize: "0.95rem", fontWeight: 600, color: NORD.muted }}>Reason</div>
-              <Select value={move.reason} onChange={(value) => setMove({ ...move, reason: value })} options={reasonOptions} />
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "0.75rem",
+              flexWrap: "wrap",
+            }}
+          >
+            <div
+              style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}
+            >
+              <div
+                style={{
+                  fontSize: "0.95rem",
+                  fontWeight: 600,
+                  color: NORD.muted,
+                }}
+              >
+                Reason
+              </div>
+              <Select
+                value={move.reason}
+                onChange={(value) => setMove({ ...move, reason: value })}
+                options={reasonOptions}
+              />
             </div>
             <div style={{ display: "flex", gap: "0.75rem" }}>
-              <Button variant="ghost" onClick={() => setMove({ ...move, fromContainer: null, toContainer: null })}>
+              <Button
+                variant="ghost"
+                onClick={() =>
+                  setMove({ ...move, fromContainer: null, toContainer: null })
+                }
+              >
                 Clear
               </Button>
-              <Button onClick={handleExecuteMove} disabled={!move.fromContainer || !move.toContainer}>
+              <Button
+                onClick={handleExecuteMove}
+                disabled={!move.fromContainer || !move.toContainer}
+              >
                 Execute move
               </Button>
             </div>
@@ -340,7 +444,7 @@ export default function MoveScreen() {
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
-              background: NORD.panel3,
+              background: "rgba(46,52,64,0.10)",
               border: "1px solid rgba(236,239,244,0.08)",
               borderRadius: "1rem",
               padding: "1.5rem",
@@ -349,11 +453,28 @@ export default function MoveScreen() {
               color: NORD.text,
             }}
           >
-            <div style={{ fontSize: "1.1rem", fontWeight: 600 }}>Open Draft</div>
-            <div style={{ marginTop: "0.75rem", color: NORD.subtle, lineHeight: 1.6 }}>
-              Create a draft move for later review and execution. This allows you to plan and validate moves before committing them to the system.
+            <div style={{ fontSize: "1.1rem", fontWeight: 600 }}>
+              Open Draft
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginTop: "1rem" }}>
+            <div
+              style={{
+                marginTop: "0.75rem",
+                color: NORD.subtle,
+                lineHeight: 1.6,
+              }}
+            >
+              Create a draft move for later review and execution. This allows
+              you to plan and validate moves before committing them to the
+              system.
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "0.75rem",
+                marginTop: "1rem",
+              }}
+            >
               <Button onClick={() => setDraftOpen(false)}>Create Draft</Button>
               <Button variant="ghost" onClick={() => setDraftOpen(false)}>
                 Cancel

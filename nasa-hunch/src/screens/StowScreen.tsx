@@ -17,17 +17,17 @@ interface TagItem {
 }
 
 const NORD = {
-  bg: "#2E3440",
-  panel: "#3B4252",
-  panel2: "#434C5E",
-  panel3: "#4C566A",
-  text: "#ECEFF4",
-  muted: "#D8DEE9",
-  subtle: "#A3ABB9",
-  blue: "#88C0D0",
+  bg: "#ECEFF4", // Snow Storm - lightest
+  panel: "#E5E9F0", // Snow Storm - light
+  panel2: "#D8DEE9", // Snow Storm - medium
+  panel3: "#C8D0DA", // Custom lighter shade
+  text: "#2E3440", // Polar Night - darkest (for contrast on light bg)
+  muted: "#4C566A", // Polar Night - lighter
+  subtle: "#5E81AC", // Frost - for subtle text
+  blue: "rgb(80, 162, 185)", // Updated light blue
   blue2: "#81A1C1",
   blue3: "#5E81AC",
-  green: "#A3BE8C",
+  green: "rgb(110, 144, 81)", // Updated green
   yellow: "#EBCB8B",
   red: "#BF616A",
 };
@@ -44,10 +44,30 @@ function Button({
   disabled?: boolean;
 }) {
   const styles = {
-    primary: { bg: NORD.blue3, fg: NORD.text, bd: "transparent", hover: NORD.blue2 },
-    secondary: { bg: NORD.blue2, fg: NORD.text, bd: "transparent", hover: NORD.blue },
-    ghost: { bg: "transparent", fg: NORD.muted, bd: "rgba(76,86,106,0.45)", hover: "rgba(76,86,106,0.22)" },
-    danger: { bg: NORD.red, fg: NORD.text, bd: "transparent", hover: "rgba(191,97,106,0.85)" },
+    primary: {
+      bg: NORD.blue3,
+      fg: "rgb(236, 239, 244)",
+      bd: "transparent",
+      hover: NORD.blue2,
+    },
+    secondary: {
+      bg: NORD.blue2,
+      fg: "rgb(236, 239, 244)",
+      bd: "transparent",
+      hover: NORD.blue,
+    },
+    ghost: {
+      bg: "transparent",
+      fg: NORD.muted,
+      bd: "rgba(76,86,106,0.45)",
+      hover: "rgba(76,86,106,0.22)",
+    },
+    danger: {
+      bg: NORD.red,
+      fg: "rgb(236, 239, 244)",
+      bd: "transparent",
+      hover: "rgba(191,97,106,0.85)",
+    },
   } as const;
   const s = styles[variant] ?? styles.primary;
 
@@ -74,31 +94,33 @@ function Button({
   );
 }
 
-function Card({
-  title,
-  children,
-}: {
-  title?: string;
-  children: ReactNode;
-}) {
+function Card({ title, children }: { title?: string; children: ReactNode }) {
   return (
     <div
       className="rounded-2xl p-5 shadow-sm animate-fade-up"
       style={{
-        background: NORD.panel,
-        border: `1px solid rgba(76,86,106,0.35)`
+        background: "rgba(46,52,64,0.05)",
+        border: `1px solid rgba(76,86,106,0.35)`,
       }}
     >
-      {title ? <div className="text-base font-semibold" style={{ color: NORD.text }}>{title}</div> : null}
+      {title ? (
+        <div className="text-base font-semibold" style={{ color: NORD.text }}>
+          {title}
+        </div>
+      ) : null}
       <div className={title ? "mt-4" : ""}>{children}</div>
     </div>
   );
 }
 
 export default function StowScreen() {
-  const [stowType, setStowType] = useState<"top-level-ctb" | "irregular-item">("top-level-ctb");
+  const [stowType, setStowType] = useState<"top-level-ctb" | "irregular-item">(
+    "top-level-ctb",
+  );
 
-  const [selectedLocation, setSelectedLocation] = useState<StowLocation | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<StowLocation | null>(
+    null,
+  );
   const [locations, setLocations] = useState<StowLocation[]>([]);
   const [tagItems, setTagItems] = useState<TagItem[]>([]);
   const [selectedShelf, setSelectedShelf] = useState<string>("S1");
@@ -133,7 +155,9 @@ export default function StowScreen() {
   const itemsByLocation = useMemo(() => {
     const map = new Map<string, TagItem[]>();
     for (const item of tagItems) {
-      const loc = String(item.location ?? "").trim().toUpperCase();
+      const loc = String(item.location ?? "")
+        .trim()
+        .toUpperCase();
       if (!loc || loc.startsWith("IRA") || loc.startsWith("IRB")) continue;
       const slotId = loc.split("/")[0];
       if (!slotId) continue;
@@ -207,13 +231,29 @@ export default function StowScreen() {
   function getLocationTone(status: string) {
     switch (status) {
       case "occupied":
-        return { bg: "rgba(163,190,140,0.08)", border: "rgba(163,190,140,0.40)", text: NORD.green };
+        return {
+          bg: "rgba(163,190,140,0.08)",
+          border: "rgba(163,190,140,0.40)",
+          text: NORD.green,
+        };
       case "reserved":
-        return { bg: "rgba(235,203,139,0.10)", border: "rgba(235,203,139,0.40)", text: NORD.yellow };
+        return {
+          bg: "rgba(235,203,139,0.10)",
+          border: "rgba(235,203,139,0.40)",
+          text: NORD.yellow,
+        };
       case "empty":
-        return { bg: "rgba(76,86,106,0.25)", border: "rgba(216,222,233,0.10)", text: NORD.subtle };
+        return {
+          bg: "rgba(76,86,106,0.25)",
+          border: "rgba(216,222,233,0.10)",
+          text: NORD.subtle,
+        };
       default:
-        return { bg: "rgba(76,86,106,0.25)", border: "rgba(216,222,233,0.10)", text: NORD.subtle };
+        return {
+          bg: "rgba(76,86,106,0.25)",
+          border: "rgba(216,222,233,0.10)",
+          text: NORD.subtle,
+        };
     }
   }
 
@@ -232,11 +272,16 @@ export default function StowScreen() {
 
   function handleStow() {
     if (selectedLocation) {
-      fetch(apiUrl(`/stow/locations/${encodeURIComponent(selectedLocation.id)}/occupy`), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "occupied" }),
-      })
+      fetch(
+        apiUrl(
+          `/stow/locations/${encodeURIComponent(selectedLocation.id)}/occupy`,
+        ),
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "occupied" }),
+        },
+      )
         .then((r) => {
           if (!r.ok) throw new Error("STOW_FAILED");
           return r.json();
@@ -263,17 +308,46 @@ export default function StowScreen() {
         padding: "1rem",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem" }}>
-        <div style={{ fontSize: "1.15rem", fontWeight: 600, color: NORD.text }}>Stow</div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "1rem",
+        }}
+      >
+        <div style={{ fontSize: "1.15rem", fontWeight: 600, color: NORD.text }}>
+          Stow
+        </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(240px, 320px) 1fr", gap: "0.75rem" }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "minmax(240px, 320px) 1fr",
+          gap: "0.75rem",
+        }}
+      >
         <div>
           <Card title="Stow">
             <div style={{ display: "grid", gap: "0.75rem" }}>
               <div>
-                <div style={{ fontSize: "0.85rem", color: NORD.subtle, marginBottom: "0.5rem" }}>Type</div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+                <div
+                  style={{
+                    fontSize: "0.85rem",
+                    color: NORD.subtle,
+                    marginBottom: "0.5rem",
+                  }}
+                >
+                  Type
+                </div>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "0.5rem",
+                  }}
+                >
                   <Button
                     variant={stowType === "top-level-ctb" ? "primary" : "ghost"}
                     onClick={() => setStowType("top-level-ctb")}
@@ -281,7 +355,9 @@ export default function StowScreen() {
                     Top-level CTB
                   </Button>
                   <Button
-                    variant={stowType === "irregular-item" ? "primary" : "ghost"}
+                    variant={
+                      stowType === "irregular-item" ? "primary" : "ghost"
+                    }
                     onClick={() => setStowType("irregular-item")}
                   >
                     Irregular item
@@ -300,7 +376,7 @@ export default function StowScreen() {
                     placeholder="Scan unit ID"
                     className="w-full rounded-2xl px-4 py-2 text-sm outline-none"
                     style={{
-                      background: NORD.panel2,
+                      background: "rgba(46,52,64,0.08)",
                       color: NORD.text,
                       border: "1px solid rgba(216,222,233,0.12)",
                     }}
@@ -312,7 +388,7 @@ export default function StowScreen() {
                     marginTop: "0.5rem",
                     borderRadius: "0.9rem",
                     padding: "0.75rem",
-                    background: NORD.panel2,
+                    background: "rgba(46,52,64,0.08)",
                     border: "1px solid rgba(216,222,233,0.10)",
                     color: selectedUnit ? NORD.text : NORD.subtle,
                   }}
@@ -322,12 +398,20 @@ export default function StowScreen() {
               </div>
 
               <div>
-                <div style={{ fontSize: "0.85rem", color: NORD.subtle, marginBottom: "0.5rem" }}>Standard CTB</div>
+                <div
+                  style={{
+                    fontSize: "0.85rem",
+                    color: NORD.subtle,
+                    marginBottom: "0.5rem",
+                  }}
+                >
+                  Standard CTB
+                </div>
                 <div
                   style={{
                     borderRadius: "0.9rem",
                     padding: "0.75rem",
-                    background: NORD.panel2,
+                    background: "rgba(46,52,64,0.08)",
                     border: "1px solid rgba(216,222,233,0.10)",
                     color: selectedUnit ? NORD.text : NORD.subtle,
                   }}
@@ -356,7 +440,7 @@ export default function StowScreen() {
                   placeholder="Scan location (e.g., S1D1L1)"
                   className="w-full rounded-2xl px-4 py-2 text-sm outline-none"
                   style={{
-                    background: NORD.panel2,
+                    background: "rgba(46,52,64,0.08)",
                     color: NORD.text,
                     border: "1px solid rgba(216,222,233,0.12)",
                   }}
@@ -366,15 +450,36 @@ export default function StowScreen() {
               {locationError ? (
                 <div
                   className="rounded-2xl px-4 py-2 text-sm"
-                  style={{ background: "rgba(191,97,106,0.18)", border: "1px solid rgba(191,97,106,0.45)", color: NORD.text }}
+                  style={{
+                    background: "rgba(191,97,106,0.18)",
+                    border: "1px solid rgba(191,97,106,0.45)",
+                    color: NORD.text,
+                  }}
                 >
                   {locationError}
                 </div>
               ) : null}
-              <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "1rem", alignItems: "center" }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "auto 1fr",
+                  gap: "1rem",
+                  alignItems: "center",
+                }}
+              >
                 <div>
-                  <div style={{ fontSize: "0.8rem", color: NORD.subtle, marginBottom: "0.4rem" }}>Shelf</div>
-                  <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                  <div
+                    style={{
+                      fontSize: "0.8rem",
+                      color: NORD.subtle,
+                      marginBottom: "0.4rem",
+                    }}
+                  >
+                    Shelf
+                  </div>
+                  <div
+                    style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}
+                  >
                     {shelves.map((s) => (
                       <Button
                         key={s}
@@ -387,8 +492,18 @@ export default function StowScreen() {
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: "0.8rem", color: NORD.subtle, marginBottom: "0.4rem" }}>Depth</div>
-                  <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                  <div
+                    style={{
+                      fontSize: "0.8rem",
+                      color: NORD.subtle,
+                      marginBottom: "0.4rem",
+                    }}
+                  >
+                    Depth
+                  </div>
+                  <div
+                    style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}
+                  >
                     {depthOptions.map((d) => (
                       <Button
                         key={d}
@@ -403,18 +518,36 @@ export default function StowScreen() {
               </div>
 
               {locationsByShelf.map((shelfGroup) => (
-                <div key={shelfGroup.shelf} style={{ display: "grid", gap: "0.75rem" }}>
-                  <div style={{ fontSize: "0.9rem", fontWeight: 600, color: NORD.subtle }}>
+                <div
+                  key={shelfGroup.shelf}
+                  style={{ display: "grid", gap: "0.75rem" }}
+                >
+                  <div
+                    style={{
+                      fontSize: "0.9rem",
+                      fontWeight: 600,
+                      color: NORD.subtle,
+                    }}
+                  >
                     {shelfGroup.shelf} • {selectedDepth}
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "0.75rem" }}>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+                      gap: "0.75rem",
+                    }}
+                  >
                     {shelfGroup.items.map((loc) => {
                       const locItems = itemsByLocation.get(loc.id) ?? [];
-                      const effectiveStatus = locItems.length ? "occupied" : loc.status;
+                      const effectiveStatus = locItems.length
+                        ? "occupied"
+                        : loc.status;
                       const tone = getLocationTone(effectiveStatus);
                       const isSel = selectedLocation?.id === loc.id;
                       const primaryItem = locItems[0];
-                      const extraCount = locItems.length > 1 ? locItems.length - 1 : 0;
+                      const extraCount =
+                        locItems.length > 1 ? locItems.length - 1 : 0;
                       return (
                         <button
                           key={loc.id}
@@ -422,8 +555,12 @@ export default function StowScreen() {
                           style={{
                             borderRadius: "0.9rem",
                             padding: "1rem",
-                            background: isSel ? "rgba(136,192,208,0.18)" : tone.bg,
-                            border: isSel ? "1px solid rgba(136,192,208,0.45)" : `1px solid ${tone.border}`,
+                            background: isSel
+                              ? "rgba(136,192,208,0.18)"
+                              : tone.bg,
+                            border: isSel
+                              ? "1px solid rgba(136,192,208,0.45)"
+                              : `1px solid ${tone.border}`,
                             color: NORD.text,
                             textAlign: "center",
                             minHeight: "90px",
@@ -432,11 +569,26 @@ export default function StowScreen() {
                             alignContent: "center",
                           }}
                         >
-                          <div style={{ fontSize: "0.95rem", fontWeight: 600 }}>{loc.level}</div>
-                          <div style={{ fontSize: "0.72rem", color: NORD.muted }}>{loc.id}</div>
-                          <div style={{ fontSize: "0.75rem", color: tone.text }}>{getLocationLabel(effectiveStatus)}</div>
+                          <div style={{ fontSize: "0.95rem", fontWeight: 600 }}>
+                            {loc.level}
+                          </div>
+                          <div
+                            style={{ fontSize: "0.72rem", color: NORD.muted }}
+                          >
+                            {loc.id}
+                          </div>
+                          <div
+                            style={{ fontSize: "0.75rem", color: tone.text }}
+                          >
+                            {getLocationLabel(effectiveStatus)}
+                          </div>
                           {primaryItem ? (
-                            <div style={{ fontSize: "0.72rem", color: NORD.subtle }}>
+                            <div
+                              style={{
+                                fontSize: "0.72rem",
+                                color: NORD.subtle,
+                              }}
+                            >
                               {primaryItem.code ?? primaryItem.id}
                               {extraCount ? ` +${extraCount}` : ""}
                             </div>
